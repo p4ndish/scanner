@@ -89,12 +89,27 @@ def import_cli_results(
     try:
         content = file.file.read()
         data = json.loads(content)
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=400, detail="Invalid JSON file")
+    except json.JSONDecodeError as e:
+        # Give a more helpful error message
+        msg = str(e)
+        if "Unterminated" in msg or "unexpected end" in msg.lower():
+            raise HTTPException(
+                status_code=400,
+                detail=f"JSON file is incomplete or corrupted (truncated). The scanner may have been interrupted before writing the full file. Error: {msg[:100]}"
+            )
+        raise HTTPException(status_code=400, detail=f"Invalid JSON file: {msg[:100]}")
+
+    # Validate structure
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=400, detail="JSON root must be an object (dict), not a list or scalar")
+    if "matches" not in data:
+        raise HTTPException(status_code=400, detail="Missing 'matches' key in JSON. Expected structure: { '$meta': {...}, 'stats': {...}, 'matches': [...] }")
 
     matches = data.get("matches", [])
+    if not isinstance(matches, list):
+        raise HTTPException(status_code=400, detail="'matches' must be a list")
     if not matches:
-        raise HTTPException(status_code=400, detail="No matches found in uploaded file")
+        raise HTTPException(status_code=400, detail="No matches found in uploaded file (matches array is empty)")
 
     # Determine if LLM mode from file contents
     is_llm = any(m.get("service") in ("ollama", "vllm", "llamacpp", "kobold", "textgen") for m in matches)

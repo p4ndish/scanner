@@ -65,6 +65,8 @@ class Reporter:
         }
         with open(path, "w") as f:
             json.dump(output, f, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
         return str(path)
 
     def save_raw(self, data: Any, filename: str):
