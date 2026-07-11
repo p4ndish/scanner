@@ -75,7 +75,13 @@ export default function ScanList() {
                     <Link to={`/scans/${s.id}`} className="font-medium hover:text-emerald-400 transition-colors">
                       {s.name}
                     </Link>
-                    <div className="text-xs text-slate-500 mt-0.5">{s.llm_mode ? 'LLM mode' : 'opencode mode'}</div>
+                    <div className="text-xs text-slate-500 mt-0.5">
+                      {s.llm_mode ? (
+                        <span className="text-purple-400">LLM mode</span>
+                      ) : (
+                        <span>opencode mode</span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-slate-400">
                     {s.target_ip ? (

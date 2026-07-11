@@ -93,6 +93,14 @@ class ScanJobList(BaseModel):
 
 # ─── Matches ───
 
+class ScanJobRef(BaseModel):
+    id: int
+    llm_mode: bool
+    name: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class MatchOut(BaseModel):
     id: int
     scan_job_id: int
@@ -106,6 +114,7 @@ class MatchOut(BaseModel):
     methods_hit: List[str]
     details_json: Optional[dict]
     created_at: datetime
+    scan_job: Optional[ScanJobRef] = None
 
     model_config = ConfigDict(from_attributes=True)
 

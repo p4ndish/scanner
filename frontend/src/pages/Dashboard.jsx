@@ -8,6 +8,8 @@ import {
   Globe,
   Radar,
   ShieldAlert,
+  Brain,
+  Code2,
 } from 'lucide-react'
 
 export default function Dashboard() {
@@ -31,7 +33,9 @@ export default function Dashboard() {
           total_matches: totalMatches,
           active_scans: active,
           last_scan_at: last?.completed_at || null,
-          matches_by_provider: matchesRes || [],
+          matches_by_provider: matchesRes?.by_provider || [],
+          opencode_matches: matchesRes?.by_mode?.opencode || 0,
+          llm_matches: matchesRes?.by_mode?.llm || 0,
         })
       } catch (e) {
         console.error(e)
@@ -84,6 +88,34 @@ export default function Dashboard() {
         })}
       </div>
 
+      {/* Mode breakdown */}
+      {(stats?.opencode_matches > 0 || stats?.llm_matches > 0) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-slate-400 text-sm">OpenCode Matches</p>
+                <p className="text-2xl font-bold mt-1 text-blue-400">{stats.opencode_matches}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-blue-400/10">
+                <Code2 className="w-5 h-5 text-blue-400" />
+              </div>
+            </div>
+          </div>
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-slate-400 text-sm">LLM Matches</p>
+                <p className="text-2xl font-bold mt-1 text-purple-400">{stats.llm_matches}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-purple-400/10">
+                <Brain className="w-5 h-5 text-purple-400" />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent scans */}
         <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl">
@@ -106,7 +138,15 @@ export default function Dashboard() {
                     {s.name}
                   </Link>
                   <div className="text-xs text-slate-500 mt-1">
-                    {s.providers?.join(', ')} · {s.match_count || 0} matches
+                    {s.target_ip ? (
+                      <span className="font-mono">{s.target_ip}</span>
+                    ) : (
+                      s.providers?.slice(0, 2).join(', ')
+                    )}
+                    {' · '}{s.match_count || 0} matches
+                    {s.llm_mode && (
+                      <span className="ml-2 text-purple-400">LLM mode</span>
+                    )}
                   </div>
                 </div>
                 <StatusBadge status={s.status} />
