@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { api } from '../lib/api'
-import { Download, Filter, Upload, Brain, Code2, Zap, X, ChevronDown, ChevronUp } from 'lucide-react'
+import { Download, Filter, Upload, Brain, Code2, Zap, X, ChevronLeft, ChevronRight } from 'lucide-react'
 
 const SERVICE_COLORS = {
   ollama: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
@@ -11,8 +11,11 @@ const SERVICE_COLORS = {
   opencode: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
 }
 
+const PER_PAGE_OPTIONS = [10, 25, 50, 100]
+
 export default function Results() {
   const [matches, setMatches] = useState([])
+  const [pagination, setPagination] = useState({ total: 0, page: 1, per_page: 25, pages: 0 })
   const [filters, setFilters] = useState({ provider: '', service: '', min_score: '', max_score: '', model: '', llm_mode: '' })
   const [loading, setLoading] = useState(true)
   const [importing, setImporting] = useState(false)
@@ -28,7 +31,7 @@ export default function Results() {
   const [testResponse, setTestResponse] = useState(null)
   const [testLoading, setTestLoading] = useState(false)
 
-  async function load() {
+  async function load(page = pagination.page, perPage = pagination.per_page) {
     setLoading(true)
     try {
       const params = new URLSearchParams()
@@ -37,18 +40,26 @@ export default function Results() {
       if (filters.min_score) params.set('min_score', filters.min_score)
       if (filters.max_score) params.set('max_score', filters.max_score)
       if (filters.llm_mode !== '') params.set('llm_mode', filters.llm_mode)
+      params.set('page', String(page))
+      params.set('per_page', String(perPage))
       const res = await api.get(`/matches?${params.toString()}`)
+      let items = res.items || []
       // Client-side model filter
-      let filtered = res
       if (filters.model.trim()) {
         const q = filters.model.toLowerCase()
-        filtered = filtered.filter((m) => {
+        items = items.filter((m) => {
           const details = m.details_json || {}
           const text = JSON.stringify(details).toLowerCase()
           return text.includes(q)
         })
       }
-      setMatches(filtered)
+      setMatches(items)
+      setPagination({
+        total: res.total,
+        page: res.page,
+        per_page: res.per_page,
+        pages: res.pages,
+      })
     } catch (e) {
       console.error(e)
     } finally {
@@ -57,8 +68,18 @@ export default function Results() {
   }
 
   useEffect(() => {
-    load()
+    load(1, pagination.per_page)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters])
+
+  function goToPage(page) {
+    if (page < 1 || page > pagination.pages) return
+    load(page, pagination.per_page)
+  }
+
+  function changePerPage(perPage) {
+    load(1, perPage)
+  }
 
   function exportCSV() {
     const rows = [
@@ -100,7 +121,7 @@ export default function Results() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.detail || 'Import failed')
       alert(`Imported ${data.imported} matches from CLI results!`)
-      load()
+      load(1, pagination.per_page)
     } catch (e) {
       alert(e.message)
     } finally {
@@ -169,8 +190,8 @@ export default function Results() {
     return tags
   }
 
-  const opencodeCount = matches.filter((m) => !m.scan_job?.llm_mode).length
-  const llmCount = matches.filter((m) => m.scan_job?.llm_mode).length
+  const startItem = (pagination.page - 1) * pagination.per_page + 1
+  const endItem = Math.min(pagination.page * pagination.per_page, pagination.total)
 
   return (
     <div className="space-y-6">
@@ -179,15 +200,10 @@ export default function Results() {
         <div>
           <h1 className="text-2xl font-bold">Results</h1>
           <p className="text-slate-400 text-sm mt-1">
-            {matches.length.toLocaleString()} total matches
-            {opencodeCount > 0 && (
-              <span className="ml-2 inline-flex items-center text-xs bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded">
-                <Code2 className="w-3 h-3 mr-1" /> {opencodeCount} opencode
-              </span>
-            )}
-            {llmCount > 0 && (
-              <span className="ml-2 inline-flex items-center text-xs bg-purple-500/10 text-purple-400 px-2 py-0.5 rounded">
-                <Brain className="w-3 h-3 mr-1" /> {llmCount} LLM
+            {pagination.total.toLocaleString()} total matches
+            {pagination.total > 0 && (
+              <span className="ml-2 text-slate-500">
+                Showing {startItem}-{endItem}
               </span>
             )}
           </p>
@@ -351,6 +367,63 @@ export default function Results() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {pagination.pages > 1 && (
+          <div className="px-6 py-4 border-t border-slate-800 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-slate-400">
+                Page <span className="font-medium text-slate-200">{pagination.page}</span> of {pagination.pages}
+              </span>
+              <select
+                value={pagination.per_page}
+                onChange={(e) => changePerPage(Number(e.target.value))}
+                className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-300 focus:outline-none"
+              >
+                {PER_PAGE_OPTIONS.map((n) => (
+                  <option key={n} value={n}>{n} / page</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => goToPage(pagination.page - 1)}
+                disabled={pagination.page <= 1}
+                className="p-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-slate-200 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
+                // Show window of 5 pages centered around current
+                let start = Math.max(1, pagination.page - 2)
+                let end = Math.min(pagination.pages, start + 4)
+                if (end - start < 4) start = Math.max(1, end - 4)
+                const page = start + i
+                if (page > pagination.pages) return null
+                return (
+                  <button
+                    key={page}
+                    onClick={() => goToPage(page)}
+                    className={`min-w-[2rem] px-2 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                      page === pagination.page
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-slate-800 border border-slate-700 text-slate-400 hover:text-slate-200 hover:bg-slate-700'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                )
+              })}
+              <button
+                onClick={() => goToPage(pagination.page + 1)}
+                disabled={pagination.page >= pagination.pages}
+                className="p-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-slate-200 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Test Modal */}

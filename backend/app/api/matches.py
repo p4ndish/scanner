@@ -13,13 +13,16 @@ from sqlalchemy.orm import joinedload
 router = APIRouter(prefix="/matches", tags=["matches"])
 
 
-@router.get("", response_model=List[MatchOut])
+@router.get("")
 def list_matches(
     scan_id: Optional[int] = Query(None),
     provider: Optional[str] = Query(None),
     service: Optional[str] = Query(None),
     min_score: Optional[int] = Query(None),
+    max_score: Optional[int] = Query(None),
     llm_mode: Optional[bool] = Query(None),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(25, ge=1, le=100),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
@@ -33,10 +36,26 @@ def list_matches(
         q = q.filter(Match.service == service)
     if min_score is not None:
         q = q.filter(Match.score >= min_score)
+    if max_score is not None:
+        q = q.filter(Match.score <= max_score)
     if llm_mode is not None:
         q = q.filter(ScanJob.llm_mode == llm_mode)
 
-    return q.order_by(Match.score.desc()).limit(1000).all()
+    total = q.count()
+    items = (
+        q.order_by(Match.score.desc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+        .all()
+    )
+
+    return {
+        "items": [MatchOut.model_validate(m) for m in items],
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "pages": (total + per_page - 1) // per_page,
+    }
 
 
 @router.get("/stats")
