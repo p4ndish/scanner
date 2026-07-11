@@ -1,13 +1,32 @@
 import { useEffect, useState, useRef } from 'react'
 import { api } from '../lib/api'
-import { Download, Filter, Upload, Brain, Code2 } from 'lucide-react'
+import { Download, Filter, Upload, Brain, Code2, Zap, X, ChevronDown, ChevronUp } from 'lucide-react'
+
+const SERVICE_COLORS = {
+  ollama: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
+  vllm: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+  llamacpp: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
+  kobold: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+  textgen: 'bg-pink-500/10 text-pink-400 border-pink-500/30',
+  opencode: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
+}
 
 export default function Results() {
   const [matches, setMatches] = useState([])
-  const [filters, setFilters] = useState({ provider: '', service: '', min_score: '', llm_mode: '' })
+  const [filters, setFilters] = useState({ provider: '', service: '', min_score: '', max_score: '', model: '', llm_mode: '' })
   const [loading, setLoading] = useState(true)
   const [importing, setImporting] = useState(false)
   const fileInputRef = useRef(null)
+
+  // Test modal state
+  const [testModalOpen, setTestModalOpen] = useState(false)
+  const [testMatch, setTestMatch] = useState(null)
+  const [testModels, setTestModels] = useState([])
+  const [testModelLoading, setTestModelLoading] = useState(false)
+  const [selectedModel, setSelectedModel] = useState('')
+  const [testPrompt, setTestPrompt] = useState('hi')
+  const [testResponse, setTestResponse] = useState(null)
+  const [testLoading, setTestLoading] = useState(false)
 
   async function load() {
     setLoading(true)
@@ -16,9 +35,20 @@ export default function Results() {
       if (filters.provider) params.set('provider', filters.provider)
       if (filters.service) params.set('service', filters.service)
       if (filters.min_score) params.set('min_score', filters.min_score)
+      if (filters.max_score) params.set('max_score', filters.max_score)
       if (filters.llm_mode !== '') params.set('llm_mode', filters.llm_mode)
       const res = await api.get(`/matches?${params.toString()}`)
-      setMatches(res)
+      // Client-side model filter
+      let filtered = res
+      if (filters.model.trim()) {
+        const q = filters.model.toLowerCase()
+        filtered = filtered.filter((m) => {
+          const details = m.details_json || {}
+          const text = JSON.stringify(details).toLowerCase()
+          return text.includes(q)
+        })
+      }
+      setMatches(filtered)
     } catch (e) {
       console.error(e)
     } finally {
@@ -64,15 +94,11 @@ export default function Results() {
       formData.append('file', file)
       const res = await fetch('/api/matches/import', {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         body: formData,
       })
       const data = await res.json()
-      if (!res.ok) {
-        throw new Error(data.detail || 'Import failed')
-      }
+      if (!res.ok) throw new Error(data.detail || 'Import failed')
       alert(`Imported ${data.imported} matches from CLI results!`)
       load()
     } catch (e) {
@@ -84,10 +110,63 @@ export default function Results() {
 
   function handleFileChange(e) {
     const file = e.target.files[0]
-    if (file) {
-      importCli(file)
-    }
+    if (file) importCli(file)
     e.target.value = ''
+  }
+
+  // ─── Test API Modal ───
+  async function openTestModal(match) {
+    setTestMatch(match)
+    setTestModalOpen(true)
+    setTestModels([])
+    setSelectedModel('')
+    setTestResponse(null)
+    setTestModelLoading(true)
+    try {
+      const res = await api.get(`/matches/${match.id}/models`)
+      setTestModels(res.models || [])
+      if (res.models?.length === 1) setSelectedModel(res.models[0].id)
+    } catch (e) {
+      alert('Could not fetch models: ' + e.message)
+    } finally {
+      setTestModelLoading(false)
+    }
+  }
+
+  async function runTest() {
+    if (!selectedModel) return
+    setTestLoading(true)
+    setTestResponse(null)
+    try {
+      const res = await api.post(`/matches/${testMatch.id}/test`, {
+        model: selectedModel,
+        prompt: testPrompt,
+        max_tokens: 100,
+      })
+      setTestResponse(res)
+    } catch (e) {
+      alert('Test failed: ' + e.message)
+    } finally {
+      setTestLoading(false)
+    }
+  }
+
+  function closeTestModal() {
+    setTestModalOpen(false)
+    setTestMatch(null)
+    setTestModels([])
+    setSelectedModel('')
+    setTestResponse(null)
+  }
+
+  function getModelTags(match) {
+    const details = match.details_json || {}
+    const tags = []
+    if (details.ollama_version) tags.push(`Ollama ${details.ollama_version}`)
+    if (details.openai_models?.model_count) tags.push(`${details.openai_models.model_count} models`)
+    if (details.openai_model_id?.length) tags.push(...details.openai_model_id.slice(0, 2))
+    if (details.kobold_model) tags.push('Kobold')
+    return tags
   }
 
   const opencodeCount = matches.filter((m) => !m.scan_job?.llm_mode).length
@@ -95,6 +174,7 @@ export default function Results() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Results</h1>
@@ -113,13 +193,7 @@ export default function Results() {
           </p>
         </div>
         <div className="flex gap-2">
-          <input
-            type="file"
-            accept=".json"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            className="hidden"
-          />
+          <input type="file" accept=".json" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={importing}
@@ -128,56 +202,68 @@ export default function Results() {
             <Upload className="w-4 h-4 mr-2" />
             {importing ? 'Importing...' : 'Import CLI Results'}
           </button>
-          <button
-            onClick={exportCSV}
-            className="inline-flex items-center px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            CSV
+          <button onClick={exportCSV} className="inline-flex items-center px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors">
+            <Download className="w-4 h-4 mr-2" /> CSV
           </button>
-          <button
-            onClick={exportJSON}
-            className="inline-flex items-center px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            JSON
+          <button onClick={exportJSON} className="inline-flex items-center px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors">
+            <Download className="w-4 h-4 mr-2" /> JSON
           </button>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-wrap gap-3 items-center">
-        <Filter className="w-4 h-4 text-slate-500" />
-        <input
-          type="text"
-          placeholder="Provider..."
-          value={filters.provider}
-          onChange={(e) => setFilters((f) => ({ ...f, provider: e.target.value }))}
-          className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-        />
-        <input
-          type="text"
-          placeholder="Service..."
-          value={filters.service}
-          onChange={(e) => setFilters((f) => ({ ...f, service: e.target.value }))}
-          className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-        />
-        <input
-          type="number"
-          placeholder="Min score"
-          value={filters.min_score}
-          onChange={(e) => setFilters((f) => ({ ...f, min_score: e.target.value }))}
-          className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 w-28"
-        />
-        <select
-          value={filters.llm_mode}
-          onChange={(e) => setFilters((f) => ({ ...f, llm_mode: e.target.value }))}
-          className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-        >
-          <option value="">All modes</option>
-          <option value="false">OpenCode</option>
-          <option value="true">LLM</option>
-        </select>
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
+        <div className="flex flex-wrap gap-3 items-center">
+          <Filter className="w-4 h-4 text-slate-500 shrink-0" />
+          <input
+            type="text" placeholder="Provider..."
+            value={filters.provider}
+            onChange={(e) => setFilters((f) => ({ ...f, provider: e.target.value }))}
+            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+          />
+          <select
+            value={filters.service}
+            onChange={(e) => setFilters((f) => ({ ...f, service: e.target.value }))}
+            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+          >
+            <option value="">All services</option>
+            <option value="ollama">Ollama</option>
+            <option value="vllm">vLLM</option>
+            <option value="llamacpp">llama.cpp</option>
+            <option value="kobold">Kobold</option>
+            <option value="textgen">TextGen</option>
+            <option value="opencode">OpenCode</option>
+          </select>
+          <select
+            value={filters.llm_mode}
+            onChange={(e) => setFilters((f) => ({ ...f, llm_mode: e.target.value }))}
+            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+          >
+            <option value="">All modes</option>
+            <option value="false">OpenCode</option>
+            <option value="true">LLM</option>
+          </select>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500">Score</span>
+            <input
+              type="number" placeholder="Min" value={filters.min_score}
+              onChange={(e) => setFilters((f) => ({ ...f, min_score: e.target.value }))}
+              className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm w-20 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+            />
+            <span className="text-slate-600">-</span>
+            <input
+              type="number" placeholder="Max" value={filters.max_score}
+              onChange={(e) => setFilters((f) => ({ ...f, max_score: e.target.value }))}
+              className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm w-20 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+            />
+          </div>
+          <input
+            type="text" placeholder="Filter by model name..."
+            value={filters.model}
+            onChange={(e) => setFilters((f) => ({ ...f, model: e.target.value }))}
+            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+          />
+        </div>
       </div>
 
       {/* Table */}
@@ -189,10 +275,10 @@ export default function Results() {
                 <th className="px-6 py-3">IP:Port</th>
                 <th className="px-6 py-3">Mode</th>
                 <th className="px-6 py-3">Service</th>
+                <th className="px-6 py-3">Models / Tags</th>
                 <th className="px-6 py-3">Provider</th>
-                <th className="px-6 py-3">Region</th>
                 <th className="px-6 py-3">Score</th>
-                <th className="px-6 py-3">Methods</th>
+                <th className="px-6 py-3">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
@@ -212,39 +298,172 @@ export default function Results() {
                   </td>
                 </tr>
               )}
-              {matches.map((m) => (
-                <tr key={m.id} className="hover:bg-slate-800/30 transition-colors">
-                  <td className="px-6 py-3 font-mono text-emerald-400">
-                    {m.ip}:{m.port}
-                  </td>
-                  <td className="px-6 py-3">
-                    {m.scan_job?.llm_mode ? (
-                      <span className="inline-flex items-center text-xs bg-purple-500/10 text-purple-400 px-1.5 py-0.5 rounded">
-                        <Brain className="w-3 h-3 mr-1" /> LLM
+              {matches.map((m) => {
+                const tags = getModelTags(m)
+                return (
+                  <tr key={m.id} className="hover:bg-slate-800/30 transition-colors">
+                    <td className="px-6 py-3 font-mono text-emerald-400">
+                      {m.ip}:{m.port}
+                    </td>
+                    <td className="px-6 py-3">
+                      {m.scan_job?.llm_mode ? (
+                        <span className="inline-flex items-center text-xs bg-purple-500/10 text-purple-400 px-1.5 py-0.5 rounded">
+                          <Brain className="w-3 h-3 mr-1" /> LLM
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center text-xs bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded">
+                          <Code2 className="w-3 h-3 mr-1" /> opencode
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-3">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${SERVICE_COLORS[m.service] || 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                        {m.service}
                       </span>
-                    ) : (
-                      <span className="inline-flex items-center text-xs bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded">
-                        <Code2 className="w-3 h-3 mr-1" /> opencode
+                    </td>
+                    <td className="px-6 py-3">
+                      <div className="flex flex-wrap gap-1">
+                        {tags.slice(0, 3).map((t, i) => (
+                          <span key={i} className="text-xs bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">{t}</span>
+                        ))}
+                        {tags.length > 3 && <span className="text-xs text-slate-600">+{tags.length - 3}</span>}
+                      </div>
+                    </td>
+                    <td className="px-6 py-3 text-slate-400 capitalize">{m.provider?.replace('_', ' ') || '—'}</td>
+                    <td className="px-6 py-3">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/10 text-emerald-400">
+                        {m.score}
                       </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-3 capitalize">{m.service}</td>
-                  <td className="px-6 py-3 text-slate-400 capitalize">{m.provider?.replace('_', ' ')}</td>
-                  <td className="px-6 py-3 text-slate-400 uppercase">{m.region}</td>
-                  <td className="px-6 py-3">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/10 text-emerald-400">
-                      {m.score}
-                    </span>
-                  </td>
-                  <td className="px-6 py-3 text-slate-400 text-xs max-w-xs truncate">
-                    {m.methods_hit?.join(', ')}
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-6 py-3">
+                      {m.scan_job?.llm_mode && (
+                        <button
+                          onClick={() => openTestModal(m)}
+                          className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-colors"
+                        >
+                          <Zap className="w-3 h-3 mr-1" /> Test
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* Test Modal */}
+      {testModalOpen && testMatch && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-lg max-h-[80vh] overflow-y-auto shadow-2xl">
+            <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold">Test API</h3>
+                <p className="text-xs text-slate-500 font-mono mt-0.5">
+                  {testMatch.ip}:{testMatch.port} ({testMatch.service})
+                </p>
+              </div>
+              <button onClick={closeTestModal} className="text-slate-500 hover:text-slate-300">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="px-6 py-4 space-y-4">
+              {/* Models */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Select Model</label>
+                {testModelLoading ? (
+                  <div className="flex items-center text-sm text-slate-500">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-400 mr-2" />
+                    Fetching models...
+                  </div>
+                ) : testModels.length === 0 ? (
+                  <p className="text-sm text-slate-500">No models discovered. Enter manually:</p>
+                ) : (
+                  <div className="space-y-1 max-h-40 overflow-y-auto">
+                    {testModels.map((m) => (
+                      <button
+                        key={m.id}
+                        onClick={() => setSelectedModel(m.id)}
+                        className={`w-full text-left px-3 py-2 rounded-lg text-sm border transition-colors ${
+                          selectedModel === m.id
+                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                            : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-750'
+                        }`}
+                      >
+                        <div className="font-medium">{m.name || m.id}</div>
+                        {m.parameter_size && <div className="text-xs text-slate-500">{m.parameter_size}</div>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {testModels.length === 0 && (
+                  <input
+                    type="text"
+                    value={selectedModel}
+                    onChange={(e) => setSelectedModel(e.target.value)}
+                    placeholder="e.g. llama3:latest"
+                    className="mt-2 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                  />
+                )}
+              </div>
+
+              {/* Prompt */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Prompt</label>
+                <textarea
+                  value={testPrompt}
+                  onChange={(e) => setTestPrompt(e.target.value)}
+                  rows={2}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 resize-none"
+                />
+              </div>
+
+              {/* Run */}
+              <button
+                onClick={runTest}
+                disabled={!selectedModel || testLoading}
+                className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg transition-colors flex items-center justify-center"
+              >
+                {testLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4 mr-2" /> Send Test Prompt
+                  </>
+                )}
+              </button>
+
+              {/* Response */}
+              {testResponse && (
+                <div className="bg-slate-950 border border-slate-800 rounded-lg p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-emerald-400">Response</span>
+                    {testResponse.total_duration_ms && (
+                      <span className="text-xs text-slate-500">{testResponse.total_duration_ms.toFixed(0)}ms</span>
+                    )}
+                  </div>
+                  <p className="text-sm text-slate-300 whitespace-pre-wrap">{testResponse.response}</p>
+                  {testResponse.prompt_eval_count !== undefined && (
+                    <div className="text-xs text-slate-500 pt-2 border-t border-slate-800">
+                      Prompt eval: {testResponse.prompt_eval_count} tokens · Response: {testResponse.eval_count} tokens
+                    </div>
+                  )}
+                  {testResponse.prompt_tokens !== undefined && (
+                    <div className="text-xs text-slate-500 pt-2 border-t border-slate-800">
+                      Prompt tokens: {testResponse.prompt_tokens} · Completion: {testResponse.completion_tokens}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

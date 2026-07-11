@@ -1,6 +1,7 @@
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from backend.app.auth import get_current_active_user
@@ -150,3 +151,191 @@ def import_cli_results(
 
     db.commit()
     return {"imported": imported, "scan_job_id": job.id}
+
+
+@router.get("/{match_id}/models")
+def list_models_for_match(
+    match_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Probe the LLM endpoint to discover available models."""
+    import requests
+
+    match = (
+        db.query(Match)
+        .join(ScanJob)
+        .filter(Match.id == match_id, ScanJob.user_id == current_user.id)
+        .first()
+    )
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+
+    base_url = f"{match.scheme}://{match.ip}:{match.port}"
+    service = match.service or "unknown"
+    models = []
+
+    try:
+        if service in ("ollama",):
+            # Ollama: GET /api/tags
+            r = requests.get(f"{base_url}/api/tags", timeout=5)
+            if r.status_code == 200:
+                data = r.json()
+                for m in data.get("models", []):
+                    models.append({
+                        "id": m.get("name", m.get("model", "unknown")),
+                        "name": m.get("name", m.get("model", "unknown")),
+                        "size": m.get("size"),
+                        "parameter_size": m.get("parameter_size"),
+                        "quantization_level": m.get("details", {}).get("quantization_level"),
+                    })
+
+        elif service in ("vllm", "textgen", "llamacpp"):
+            # OpenAI-compatible: GET /v1/models
+            r = requests.get(f"{base_url}/v1/models", timeout=5)
+            if r.status_code == 200:
+                data = r.json()
+                for m in data.get("data", []):
+                    models.append({
+                        "id": m.get("id", "unknown"),
+                        "name": m.get("id", "unknown"),
+                    })
+
+        elif service == "kobold":
+            # Kobold: GET /api/v1/model
+            r = requests.get(f"{base_url}/api/v1/model", timeout=5)
+            if r.status_code == 200:
+                data = r.json()
+                model_name = data.get("result", "unknown")
+                models.append({"id": model_name, "name": model_name})
+
+        # Fallback: try OpenAI-compatible for any service
+        if not models:
+            r = requests.get(f"{base_url}/v1/models", timeout=5)
+            if r.status_code == 200:
+                data = r.json()
+                for m in data.get("data", []):
+                    models.append({"id": m.get("id", "unknown"), "name": m.get("id", "unknown")})
+
+    except requests.RequestException as e:
+        raise HTTPException(status_code=502, detail=f"Could not reach endpoint: {e}")
+
+    return {"models": models, "service": service, "url": base_url}
+
+
+class TestPromptPayload(BaseModel):
+    model: str
+    prompt: str = "hi"
+    max_tokens: int = 100
+
+
+@router.post("/{match_id}/test")
+def test_prompt(
+    match_id: int,
+    payload: TestPromptPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Send a test prompt to the LLM endpoint and return the response."""
+    import requests
+
+    match = (
+        db.query(Match)
+        .join(ScanJob)
+        .filter(Match.id == match_id, ScanJob.user_id == current_user.id)
+        .first()
+    )
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+
+    base_url = f"{match.scheme}://{match.ip}:{match.port}"
+    service = match.service or "unknown"
+    model = payload.model
+    prompt = payload.prompt
+
+    try:
+        if service in ("ollama",):
+            # Ollama: POST /api/generate
+            r = requests.post(
+                f"{base_url}/api/generate",
+                json={"model": model, "prompt": prompt, "stream": False},
+                timeout=15,
+            )
+            if r.status_code == 200:
+                data = r.json()
+                return {
+                    "response": data.get("response", ""),
+                    "done": data.get("done", True),
+                    "total_duration_ms": data.get("total_duration", 0) / 1e6,
+                    "prompt_eval_count": data.get("prompt_eval_count", 0),
+                    "eval_count": data.get("eval_count", 0),
+                }
+            else:
+                raise HTTPException(status_code=502, detail=f"Ollama returned {r.status_code}: {r.text[:200]}")
+
+        elif service in ("vllm", "textgen", "llamacpp"):
+            # OpenAI-compatible chat: POST /v1/chat/completions
+            r = requests.post(
+                f"{base_url}/v1/chat/completions",
+                json={
+                    "model": model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "max_tokens": payload.max_tokens,
+                    "stream": False,
+                },
+                timeout=15,
+            )
+            if r.status_code == 200:
+                data = r.json()
+                choice = data.get("choices", [{}])[0]
+                msg = choice.get("message", {})
+                return {
+                    "response": msg.get("content", ""),
+                    "finish_reason": choice.get("finish_reason"),
+                    "prompt_tokens": data.get("usage", {}).get("prompt_tokens"),
+                    "completion_tokens": data.get("usage", {}).get("completion_tokens"),
+                }
+            else:
+                raise HTTPException(status_code=502, detail=f"Endpoint returned {r.status_code}: {r.text[:200]}")
+
+        elif service == "kobold":
+            # Kobold: POST /api/v1/generate
+            r = requests.post(
+                f"{base_url}/api/v1/generate",
+                json={"prompt": prompt, "max_length": payload.max_tokens},
+                timeout=15,
+            )
+            if r.status_code == 200:
+                data = r.json()
+                results = data.get("results", [{}])
+                return {"response": results[0].get("text", "")}
+            else:
+                raise HTTPException(status_code=502, detail=f"Kobold returned {r.status_code}: {r.text[:200]}")
+
+        else:
+            # Fallback: try OpenAI-compatible
+            r = requests.post(
+                f"{base_url}/v1/chat/completions",
+                json={
+                    "model": model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "max_tokens": payload.max_tokens,
+                    "stream": False,
+                },
+                timeout=15,
+            )
+            if r.status_code == 200:
+                data = r.json()
+                choice = data.get("choices", [{}])[0]
+                msg = choice.get("message", {})
+                return {
+                    "response": msg.get("content", ""),
+                    "finish_reason": choice.get("finish_reason"),
+                }
+            else:
+                raise HTTPException(status_code=502, detail=f"Fallback returned {r.status_code}: {r.text[:200]}")
+
+    except requests.RequestException as e:
+        raise HTTPException(status_code=502, detail=f"Request failed: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
