@@ -1,0 +1,32 @@
+{
+  "targets": {
+    "providers": ["all"],
+    "ports": [4096, 3000, 8080]
+  },
+  "masscan": {
+    "rate_per_instance": 2500,
+    "parallel_instances": 4,
+    "batch_prefix_count": 500,
+    "batch_target_ip_count": 5000000,
+    "max_retries": 2,
+    "retry_rate_multiplier": 0.5,
+    "interface": null,
+    "use_sudo": true
+  },
+  "fingerprint": {
+    "http_concurrency": 500,
+    "request_timeout": 3.0,
+    "score_threshold": 5,
+    "verify_methods": ["health", "doc", "path", "doc_title", "auth_realm", "error_shape", "port_hint"]
+  },
+  "pre_filter": {
+    "zmap_enabled": true,
+    "zmap_rate": 250000,
+    "zmap_retries": 1
+  },
+  "output": {
+    "directory": "results",
+    "save_raw_masscan": true,
+    "save_raw_zmap": false
+  }
+}

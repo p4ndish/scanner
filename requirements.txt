@@ -1,0 +1,25 @@
+# Existing scanner deps
+aiohttp>=3.9.0
+
+# Web backend
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+python-multipart>=0.0.9
+
+# Database
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.9
+alembic>=1.13.0
+
+# Auth
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+bcrypt==3.2.2
+
+# Celery / Queue
+celery[redis]>=5.3.0
+redis>=5.0.0
+
+# Utilities
+pydantic>=2.6.0
+python-dotenv>=1.0.0
