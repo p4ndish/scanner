@@ -1,15 +1,34 @@
 import { useEffect, useState, useRef } from 'react'
 import { api } from '../lib/api'
-import { Download, Filter, Upload, Brain, Code2, Zap, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Download, Filter, Upload, Brain, Code2, Zap, ChevronDown, ChevronRight } from 'lucide-react'
 
 const SERVICE_COLORS = {
   ollama: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
+  vllm_compat: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
   vllm: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
   llamacpp: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
   kobold: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
   textgen: 'bg-pink-500/10 text-pink-400 border-pink-500/30',
+  lm_studio: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
+  anythingllm: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
+  openwebui: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30',
   opencode: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
+  generic: 'bg-slate-700 text-slate-400 border-slate-600',
+  unknown: 'bg-slate-800 text-slate-500 border-slate-700',
 }
+
+const SERVICE_OPTIONS = [
+  { value: '', label: 'All services' },
+  { value: 'ollama', label: 'Ollama' },
+  { value: 'vllm_compat', label: 'vLLM / OpenAI-compat' },
+  { value: 'llamacpp', label: 'llama.cpp' },
+  { value: 'kobold', label: 'Kobold' },
+  { value: 'textgen', label: 'TextGen' },
+  { value: 'lm_studio', label: 'LM Studio' },
+  { value: 'anythingllm', label: 'AnythingLLM' },
+  { value: 'openwebui', label: 'Open WebUI' },
+  { value: 'opencode', label: 'OpenCode' },
+]
 
 const PER_PAGE_OPTIONS = [10, 25, 50, 100]
 
@@ -21,15 +40,11 @@ export default function Results() {
   const [importing, setImporting] = useState(false)
   const fileInputRef = useRef(null)
 
-  // Test modal state
-  const [testModalOpen, setTestModalOpen] = useState(false)
-  const [testMatch, setTestMatch] = useState(null)
-  const [testModels, setTestModels] = useState([])
-  const [testModelLoading, setTestModelLoading] = useState(false)
-  const [selectedModel, setSelectedModel] = useState('')
-  const [testPrompt, setTestPrompt] = useState('hi')
-  const [testResponse, setTestResponse] = useState(null)
-  const [testLoading, setTestLoading] = useState(false)
+  // Per-row expanded state: { [matchId]: true }
+  const [expandedRows, setExpandedRows] = useState(new Set())
+
+  // Per-row test state: { [matchId]: { models, selectedModel, testPrompt, testResponse, testLoading, modelLoading } }
+  const [rowTestState, setRowTestState] = useState({})
 
   async function load(page = pagination.page, perPage = pagination.per_page) {
     setLoading(true)
@@ -44,7 +59,6 @@ export default function Results() {
       params.set('per_page', String(perPage))
       const res = await api.get(`/matches?${params.toString()}`)
       let items = res.items || []
-      // Client-side model filter
       if (filters.model.trim()) {
         const q = filters.model.toLowerCase()
         items = items.filter((m) => {
@@ -79,6 +93,85 @@ export default function Results() {
 
   function changePerPage(perPage) {
     load(1, perPage)
+  }
+
+  function toggleRow(matchId) {
+    setExpandedRows((prev) => {
+      const next = new Set(prev)
+      if (next.has(matchId)) {
+        next.delete(matchId)
+      } else {
+        next.add(matchId)
+        // Auto-fetch models when expanding
+        const match = matches.find((m) => m.id === matchId)
+        if (match && match.scan_job?.llm_mode && !rowTestState[matchId]?.models) {
+          fetchModelsForRow(match)
+        }
+      }
+      return next
+    })
+  }
+
+  async function fetchModelsForRow(match) {
+    const id = match.id
+    setRowTestState((prev) => ({
+      ...prev,
+      [id]: { ...prev[id], modelLoading: true },
+    }))
+    try {
+      const res = await api.get(`/matches/${id}/models`)
+      const models = res.models || []
+      setRowTestState((prev) => ({
+        ...prev,
+        [id]: {
+          ...prev[id],
+          models,
+          selectedModel: models.length === 1 ? models[0].id : (prev[id]?.selectedModel || ''),
+          modelLoading: false,
+        },
+      }))
+    } catch (e) {
+      setRowTestState((prev) => ({
+        ...prev,
+        [id]: { ...prev[id], modelLoading: false },
+      }))
+    }
+  }
+
+  async function runTestForRow(matchId) {
+    const state = rowTestState[matchId]
+    if (!state?.selectedModel) return
+    const match = matches.find((m) => m.id === matchId)
+    if (!match) return
+
+    setRowTestState((prev) => ({
+      ...prev,
+      [matchId]: { ...prev[matchId], testLoading: true, testResponse: null },
+    }))
+    try {
+      const res = await api.post(`/matches/${matchId}/test`, {
+        model: state.selectedModel,
+        prompt: state.testPrompt || 'hi',
+        max_tokens: 100,
+      })
+      setRowTestState((prev) => ({
+        ...prev,
+        [matchId]: { ...prev[matchId], testResponse: res, testLoading: false },
+      }))
+    } catch (e) {
+      setRowTestState((prev) => ({
+        ...prev,
+        [matchId]: { ...prev[matchId], testLoading: false },
+      }))
+      alert('Test failed: ' + e.message)
+    }
+  }
+
+  function updateRowState(matchId, updates) {
+    setRowTestState((prev) => ({
+      ...prev,
+      [matchId]: { ...(prev[matchId] || {}), ...updates },
+    }))
   }
 
   function exportCSV() {
@@ -135,51 +228,6 @@ export default function Results() {
     e.target.value = ''
   }
 
-  // ─── Test API Modal ───
-  async function openTestModal(match) {
-    setTestMatch(match)
-    setTestModalOpen(true)
-    setTestModels([])
-    setSelectedModel('')
-    setTestResponse(null)
-    setTestModelLoading(true)
-    try {
-      const res = await api.get(`/matches/${match.id}/models`)
-      setTestModels(res.models || [])
-      if (res.models?.length === 1) setSelectedModel(res.models[0].id)
-    } catch (e) {
-      alert('Could not fetch models: ' + e.message)
-    } finally {
-      setTestModelLoading(false)
-    }
-  }
-
-  async function runTest() {
-    if (!selectedModel) return
-    setTestLoading(true)
-    setTestResponse(null)
-    try {
-      const res = await api.post(`/matches/${testMatch.id}/test`, {
-        model: selectedModel,
-        prompt: testPrompt,
-        max_tokens: 100,
-      })
-      setTestResponse(res)
-    } catch (e) {
-      alert('Test failed: ' + e.message)
-    } finally {
-      setTestLoading(false)
-    }
-  }
-
-  function closeTestModal() {
-    setTestModalOpen(false)
-    setTestMatch(null)
-    setTestModels([])
-    setSelectedModel('')
-    setTestResponse(null)
-  }
-
   function getModelTags(match) {
     const details = match.details_json || {}
     const tags = []
@@ -187,6 +235,9 @@ export default function Results() {
     if (details.openai_models?.model_count) tags.push(`${details.openai_models.model_count} models`)
     if (details.openai_model_id?.length) tags.push(...details.openai_model_id.slice(0, 2))
     if (details.kobold_model) tags.push('Kobold')
+    if (details.openwebui_version) tags.push(`WebUI ${details.openwebui_version}`)
+    if (details.anythingllm) tags.push('AnythingLLM')
+    if (details.llamacpp_props) tags.push('llama.cpp')
     return tags
   }
 
@@ -242,13 +293,9 @@ export default function Results() {
             onChange={(e) => setFilters((f) => ({ ...f, service: e.target.value }))}
             className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
           >
-            <option value="">All services</option>
-            <option value="ollama">Ollama</option>
-            <option value="vllm">vLLM</option>
-            <option value="llamacpp">llama.cpp</option>
-            <option value="kobold">Kobold</option>
-            <option value="textgen">TextGen</option>
-            <option value="opencode">OpenCode</option>
+            {SERVICE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
           </select>
           <select
             value={filters.llm_mode}
@@ -288,13 +335,13 @@ export default function Results() {
           <table className="w-full text-sm text-left">
             <thead className="bg-slate-800/50 text-slate-400 text-xs uppercase">
               <tr>
+                <th className="px-4 py-3 w-8"></th>
                 <th className="px-6 py-3">IP:Port</th>
                 <th className="px-6 py-3">Mode</th>
                 <th className="px-6 py-3">Service</th>
                 <th className="px-6 py-3">Models / Tags</th>
                 <th className="px-6 py-3">Provider</th>
                 <th className="px-6 py-3">Score</th>
-                <th className="px-6 py-3">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
@@ -316,52 +363,166 @@ export default function Results() {
               )}
               {matches.map((m) => {
                 const tags = getModelTags(m)
+                const isExpanded = expandedRows.has(m.id)
+                const tState = rowTestState[m.id] || {}
                 return (
-                  <tr key={m.id} className="hover:bg-slate-800/30 transition-colors">
-                    <td className="px-6 py-3 font-mono text-emerald-400">
-                      {m.ip}:{m.port}
-                    </td>
-                    <td className="px-6 py-3">
-                      {m.scan_job?.llm_mode ? (
-                        <span className="inline-flex items-center text-xs bg-purple-500/10 text-purple-400 px-1.5 py-0.5 rounded">
-                          <Brain className="w-3 h-3 mr-1" /> LLM
+                  <>
+                    <tr
+                      key={m.id}
+                      onClick={() => m.scan_job?.llm_mode && toggleRow(m.id)}
+                      className={`hover:bg-slate-800/30 transition-colors ${m.scan_job?.llm_mode ? 'cursor-pointer' : ''}`}
+                    >
+                      <td className="px-4 py-3">
+                        {m.scan_job?.llm_mode && (
+                          isExpanded ? (
+                            <ChevronDown className="w-4 h-4 text-slate-500" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4 text-slate-500" />
+                          )
+                        )}
+                      </td>
+                      <td className="px-6 py-3 font-mono text-emerald-400">
+                        {m.ip}:{m.port}
+                      </td>
+                      <td className="px-6 py-3">
+                        {m.scan_job?.llm_mode ? (
+                          <span className="inline-flex items-center text-xs bg-purple-500/10 text-purple-400 px-1.5 py-0.5 rounded">
+                            <Brain className="w-3 h-3 mr-1" /> LLM
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center text-xs bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded">
+                            <Code2 className="w-3 h-3 mr-1" /> opencode
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-3">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${SERVICE_COLORS[m.service] || SERVICE_COLORS.unknown}`}>
+                          {m.service}
                         </span>
-                      ) : (
-                        <span className="inline-flex items-center text-xs bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded">
-                          <Code2 className="w-3 h-3 mr-1" /> opencode
+                      </td>
+                      <td className="px-6 py-3">
+                        <div className="flex flex-wrap gap-1">
+                          {tags.slice(0, 3).map((t, i) => (
+                            <span key={i} className="text-xs bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">{t}</span>
+                          ))}
+                          {tags.length > 3 && <span className="text-xs text-slate-600">+{tags.length - 3}</span>}
+                        </div>
+                      </td>
+                      <td className="px-6 py-3 text-slate-400 capitalize">{m.provider?.replace('_', ' ') || '—'}</td>
+                      <td className="px-6 py-3">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/10 text-emerald-400">
+                          {m.score}
                         </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-3">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${SERVICE_COLORS[m.service] || 'bg-slate-800 text-slate-400 border-slate-700'}`}>
-                        {m.service}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3">
-                      <div className="flex flex-wrap gap-1">
-                        {tags.slice(0, 3).map((t, i) => (
-                          <span key={i} className="text-xs bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">{t}</span>
-                        ))}
-                        {tags.length > 3 && <span className="text-xs text-slate-600">+{tags.length - 3}</span>}
-                      </div>
-                    </td>
-                    <td className="px-6 py-3 text-slate-400 capitalize">{m.provider?.replace('_', ' ') || '—'}</td>
-                    <td className="px-6 py-3">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/10 text-emerald-400">
-                        {m.score}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3">
-                      {m.scan_job?.llm_mode && (
-                        <button
-                          onClick={() => openTestModal(m)}
-                          className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-colors"
-                        >
-                          <Zap className="w-3 h-3 mr-1" /> Test
-                        </button>
-                      )}
-                    </td>
-                  </tr>
+                      </td>
+                    </tr>
+
+                    {/* Expanded test panel */}
+                    {isExpanded && m.scan_job?.llm_mode && (
+                      <tr key={`${m.id}-expanded`}>
+                        <td colSpan={7} className="px-0 py-0">
+                          <div className="bg-slate-950/50 border-y border-slate-800/50 px-6 py-5 space-y-4">
+                            {/* Models */}
+                            <div>
+                              <label className="block text-sm font-medium text-slate-300 mb-2">Select Model</label>
+                              {tState.modelLoading ? (
+                                <div className="flex items-center text-sm text-slate-500">
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-400 mr-2" />
+                                  Fetching models...
+                                </div>
+                              ) : !tState.models || tState.models.length === 0 ? (
+                                <p className="text-sm text-slate-500 mb-2">No models discovered. Enter manually:</p>
+                              ) : (
+                                <div className="flex flex-wrap gap-2">
+                                  {tState.models.map((model) => (
+                                    <button
+                                      key={model.id}
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        updateRowState(m.id, { selectedModel: model.id })
+                                      }}
+                                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                                        tState.selectedModel === model.id
+                                          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                                          : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-750'
+                                      }`}
+                                    >
+                                      <div>{model.name || model.id}</div>
+                                      {model.quantization_level && (
+                                        <div className="text-[10px] text-slate-500">{model.quantization_level}</div>
+                                      )}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                              {(!tState.models || tState.models.length === 0) && (
+                                <input
+                                  type="text"
+                                  value={tState.selectedModel || ''}
+                                  onChange={(e) => updateRowState(m.id, { selectedModel: e.target.value })}
+                                  onClick={(e) => e.stopPropagation()}
+                                  placeholder="e.g. llama3:latest"
+                                  className="mt-2 w-full max-w-xs bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                                />
+                              )}
+                            </div>
+
+                            {/* Prompt */}
+                            <div className="flex gap-3 items-end">
+                              <div className="flex-1">
+                                <label className="block text-sm font-medium text-slate-300 mb-2">Prompt</label>
+                                <textarea
+                                  value={tState.testPrompt || 'hi'}
+                                  onChange={(e) => updateRowState(m.id, { testPrompt: e.target.value })}
+                                  onClick={(e) => e.stopPropagation()}
+                                  rows={2}
+                                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 resize-none"
+                                />
+                              </div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  runTestForRow(m.id)
+                                }}
+                                disabled={!tState.selectedModel || tState.testLoading}
+                                className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-medium py-2.5 px-5 rounded-lg transition-colors flex items-center shrink-0"
+                              >
+                                {tState.testLoading ? (
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                                ) : (
+                                  <>
+                                    <Zap className="w-4 h-4 mr-2" /> Test
+                                  </>
+                                )}
+                              </button>
+                            </div>
+
+                            {/* Response */}
+                            {tState.testResponse && (
+                              <div className="bg-slate-900 border border-slate-800 rounded-lg p-4 space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs font-medium text-emerald-400">Response</span>
+                                  {tState.testResponse.total_duration_ms && (
+                                    <span className="text-xs text-slate-500">{tState.testResponse.total_duration_ms.toFixed(0)}ms</span>
+                                  )}
+                                </div>
+                                <p className="text-sm text-slate-300 whitespace-pre-wrap">{tState.testResponse.response}</p>
+                                {tState.testResponse.prompt_eval_count !== undefined && (
+                                  <div className="text-xs text-slate-500 pt-2 border-t border-slate-800">
+                                    Prompt eval: {tState.testResponse.prompt_eval_count} tokens · Response: {tState.testResponse.eval_count} tokens
+                                  </div>
+                                )}
+                                {tState.testResponse.prompt_tokens !== undefined && (
+                                  <div className="text-xs text-slate-500 pt-2 border-t border-slate-800">
+                                    Prompt tokens: {tState.testResponse.prompt_tokens} · Completion: {tState.testResponse.completion_tokens}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
                 )
               })}
             </tbody>
@@ -391,10 +552,9 @@ export default function Results() {
                 disabled={pagination.page <= 1}
                 className="p-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-slate-200 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronDown className="w-4 h-4 rotate-90" />
               </button>
               {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
-                // Show window of 5 pages centered around current
                 let start = Math.max(1, pagination.page - 2)
                 let end = Math.min(pagination.pages, start + 4)
                 if (end - start < 4) start = Math.max(1, end - 4)
@@ -419,124 +579,12 @@ export default function Results() {
                 disabled={pagination.page >= pagination.pages}
                 className="p-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-slate-200 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronDown className="w-4 h-4 -rotate-90" />
               </button>
             </div>
           </div>
         )}
       </div>
-
-      {/* Test Modal */}
-      {testModalOpen && testMatch && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-lg max-h-[80vh] overflow-y-auto shadow-2xl">
-            <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
-              <div>
-                <h3 className="font-semibold">Test API</h3>
-                <p className="text-xs text-slate-500 font-mono mt-0.5">
-                  {testMatch.ip}:{testMatch.port} ({testMatch.service})
-                </p>
-              </div>
-              <button onClick={closeTestModal} className="text-slate-500 hover:text-slate-300">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="px-6 py-4 space-y-4">
-              {/* Models */}
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Select Model</label>
-                {testModelLoading ? (
-                  <div className="flex items-center text-sm text-slate-500">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-400 mr-2" />
-                    Fetching models...
-                  </div>
-                ) : testModels.length === 0 ? (
-                  <p className="text-sm text-slate-500">No models discovered. Enter manually:</p>
-                ) : (
-                  <div className="space-y-1 max-h-40 overflow-y-auto">
-                    {testModels.map((m) => (
-                      <button
-                        key={m.id}
-                        onClick={() => setSelectedModel(m.id)}
-                        className={`w-full text-left px-3 py-2 rounded-lg text-sm border transition-colors ${
-                          selectedModel === m.id
-                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                            : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-750'
-                        }`}
-                      >
-                        <div className="font-medium">{m.name || m.id}</div>
-                        {m.parameter_size && <div className="text-xs text-slate-500">{m.parameter_size}</div>}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {testModels.length === 0 && (
-                  <input
-                    type="text"
-                    value={selectedModel}
-                    onChange={(e) => setSelectedModel(e.target.value)}
-                    placeholder="e.g. llama3:latest"
-                    className="mt-2 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                  />
-                )}
-              </div>
-
-              {/* Prompt */}
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Prompt</label>
-                <textarea
-                  value={testPrompt}
-                  onChange={(e) => setTestPrompt(e.target.value)}
-                  rows={2}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 resize-none"
-                />
-              </div>
-
-              {/* Run */}
-              <button
-                onClick={runTest}
-                disabled={!selectedModel || testLoading}
-                className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg transition-colors flex items-center justify-center"
-              >
-                {testLoading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                    Sending...
-                  </>
-                ) : (
-                  <>
-                    <Zap className="w-4 h-4 mr-2" /> Send Test Prompt
-                  </>
-                )}
-              </button>
-
-              {/* Response */}
-              {testResponse && (
-                <div className="bg-slate-950 border border-slate-800 rounded-lg p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-emerald-400">Response</span>
-                    {testResponse.total_duration_ms && (
-                      <span className="text-xs text-slate-500">{testResponse.total_duration_ms.toFixed(0)}ms</span>
-                    )}
-                  </div>
-                  <p className="text-sm text-slate-300 whitespace-pre-wrap">{testResponse.response}</p>
-                  {testResponse.prompt_eval_count !== undefined && (
-                    <div className="text-xs text-slate-500 pt-2 border-t border-slate-800">
-                      Prompt eval: {testResponse.prompt_eval_count} tokens · Response: {testResponse.eval_count} tokens
-                    </div>
-                  )}
-                  {testResponse.prompt_tokens !== undefined && (
-                    <div className="text-xs text-slate-500 pt-2 border-t border-slate-800">
-                      Prompt tokens: {testResponse.prompt_tokens} · Completion: {testResponse.completion_tokens}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
