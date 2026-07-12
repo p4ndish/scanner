@@ -115,6 +115,9 @@ class MatchOut(BaseModel):
     details_json: Optional[dict]
     created_at: datetime
     scan_job: Optional[ScanJobRef] = None
+    verified_status: str = "pending"
+    verified_at: Optional[datetime] = None
+    verification_details: Optional[dict] = None
 
     model_config = ConfigDict(from_attributes=True)
 

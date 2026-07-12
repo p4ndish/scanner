@@ -21,6 +21,7 @@ def list_matches(
     min_score: Optional[int] = Query(None),
     max_score: Optional[int] = Query(None),
     llm_mode: Optional[bool] = Query(None),
+    verified_status: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     per_page: int = Query(25, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -40,6 +41,8 @@ def list_matches(
         q = q.filter(Match.score <= max_score)
     if llm_mode is not None:
         q = q.filter(ScanJob.llm_mode == llm_mode)
+    if verified_status:
+        q = q.filter(Match.verified_status == verified_status)
 
     total = q.count()
     items = (
@@ -83,12 +86,22 @@ def match_stats(
         .all()
     )
 
+    # Verification breakdown
+    verify_q = (
+        db.query(Match.verified_status, func.count(Match.id).label("count"))
+        .join(ScanJob)
+        .filter(ScanJob.user_id == current_user.id)
+        .group_by(Match.verified_status)
+        .all()
+    )
+
     return {
         "by_provider": [{"provider": p or "unknown", "count": c} for p, c in provider_q],
         "by_mode": {
             "opencode": sum(c for mode, c in mode_q if not mode),
             "llm": sum(c for mode, c in mode_q if mode),
         },
+        "by_verified": {status: c for status, c in verify_q},
     }
 
 
@@ -133,6 +146,199 @@ def import_cli_results(
                 os.unlink(tmp_path)
             except OSError:
                 pass
+
+
+class VerifyPayload(BaseModel):
+    provider: Optional[str] = None
+    service: Optional[str] = None
+    scan_id: Optional[int] = None
+    verified_status: Optional[str] = None  # e.g. "pending" or "unreachable"
+
+
+@router.post("/verify")
+def start_verification(
+    payload: VerifyPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Queue a background verification task for matches matching the filters."""
+    from backend.app.tasks import verify_matches_task
+    import redis
+    import json
+    import os
+
+    # Count how many will be verified
+    q = db.query(Match).join(ScanJob).filter(
+        ScanJob.user_id == current_user.id,
+        Match.verified_status.in_(["pending", "unreachable"]),
+    )
+    if payload.provider:
+        q = q.filter(Match.provider == payload.provider)
+    if payload.service:
+        q = q.filter(Match.service == payload.service)
+    if payload.scan_id:
+        q = q.filter(Match.scan_job_id == payload.scan_id)
+    if payload.verified_status:
+        q = q.filter(Match.verified_status == payload.verified_status)
+
+    total = q.count()
+    if total == 0:
+        raise HTTPException(status_code=400, detail="No matches to verify")
+
+    # Set initial progress in Redis
+    r = redis.from_url(os.getenv("REDIS_URL", "redis://redis:6379/0"))
+    r.set(
+        f"verify:{current_user.id}:progress",
+        json.dumps({
+            "total": total,
+            "done": 0,
+            "legitimate": 0,
+            "honeypot": 0,
+            "unreachable": 0,
+            "state": "queued",
+        }),
+        ex=3600,
+    )
+
+    # Queue Celery task
+    task = verify_matches_task.delay(
+        user_id=current_user.id,
+        filters={
+            "provider": payload.provider,
+            "service": payload.service,
+            "scan_id": payload.scan_id,
+            "verified_status": payload.verified_status,
+        },
+    )
+
+    return {"queued": True, "total": total, "task_id": task.id}
+
+
+@router.get("/verification-status")
+def verification_status(
+    current_user: User = Depends(get_current_active_user),
+):
+    """Poll the current verification progress."""
+    import redis
+    import json
+    import os
+
+    r = redis.from_url(os.getenv("REDIS_URL", "redis://redis:6379/0"))
+    raw = r.get(f"verify:{current_user.id}:progress")
+    if not raw:
+        return {"state": "idle", "total": 0, "done": 0}
+    return json.loads(raw)
+
+
+class ReverifyPayload(BaseModel):
+    match_ids: Optional[List[int]] = None
+    all_unreachable: bool = False
+
+
+@router.post("/reverify")
+def reverify_matches(
+    payload: ReverifyPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Re-verify specific matches or all unreachable matches."""
+    from backend.app.tasks import verify_matches_task
+    import redis
+    import json
+    import os
+
+    from sqlalchemy import update
+
+    # Build subquery of match IDs to re-verify
+    q = db.query(Match.id).join(ScanJob).filter(
+        ScanJob.user_id == current_user.id,
+    )
+
+    if payload.all_unreachable:
+        q = q.filter(Match.verified_status == "unreachable")
+    elif payload.match_ids:
+        q = q.filter(Match.id.in_(payload.match_ids))
+    else:
+        raise HTTPException(status_code=400, detail="Provide match_ids or all_unreachable=true")
+
+    subq = q.subquery()
+    total = db.query(Match.id).filter(Match.id.in_(subq)).count()
+    if total == 0:
+        raise HTTPException(status_code=400, detail="No matches to re-verify")
+
+    # Reset status to pending for these matches
+    stmt = update(Match).where(Match.id.in_(subq)).values(verified_status="pending")
+    db.execute(stmt)
+    db.commit()
+
+    # Set progress in Redis
+    r = redis.from_url(os.getenv("REDIS_URL", "redis://redis:6379/0"))
+    r.set(
+        f"verify:{current_user.id}:progress",
+        json.dumps({
+            "total": total,
+            "done": 0,
+            "legitimate": 0,
+            "honeypot": 0,
+            "unreachable": 0,
+            "state": "queued",
+        }),
+        ex=3600,
+    )
+
+    task = verify_matches_task.delay(
+        user_id=current_user.id,
+        filters={"match_ids": payload.match_ids, "all_unreachable": payload.all_unreachable},
+    )
+
+    return {"queued": True, "total": total, "task_id": task.id}
+
+
+class BulkDeletePayload(BaseModel):
+    match_ids: Optional[List[int]] = None
+    provider: Optional[str] = None
+    service: Optional[str] = None
+    verified_status: Optional[str] = None
+    scan_id: Optional[int] = None
+
+
+@router.delete("/bulk")
+def bulk_delete_matches(
+    payload: BulkDeletePayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Delete matches by IDs or by filters."""
+    from sqlalchemy import delete
+
+    if payload.match_ids:
+        # Delete specific IDs (must belong to user)
+        subq = (
+            db.query(Match.id)
+            .join(ScanJob)
+            .filter(ScanJob.user_id == current_user.id, Match.id.in_(payload.match_ids))
+            .subquery()
+        )
+        stmt = delete(Match).where(Match.id.in_(subq))
+        result = db.execute(stmt)
+    else:
+        # Delete by filters — build subquery first since SQLAlchemy
+        # doesn't allow delete() directly on a query with join()
+        q = db.query(Match.id).join(ScanJob).filter(ScanJob.user_id == current_user.id)
+        if payload.provider:
+            q = q.filter(Match.provider == payload.provider)
+        if payload.service:
+            q = q.filter(Match.service == payload.service)
+        if payload.verified_status:
+            q = q.filter(Match.verified_status == payload.verified_status)
+        if payload.scan_id:
+            q = q.filter(Match.scan_job_id == payload.scan_id)
+        subq = q.subquery()
+        stmt = delete(Match).where(Match.id.in_(subq))
+        result = db.execute(stmt)
+
+    db.commit()
+    return {"deleted": result.rowcount}
 
 
 @router.get("/{match_id}/models")

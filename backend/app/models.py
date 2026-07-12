@@ -64,6 +64,11 @@ class Match(Base):
     details_json = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+    # Verification fields
+    verified_status = Column(String(16), default="pending", nullable=False)
+    verified_at = Column(DateTime, nullable=True)
+    verification_details = Column(JSON, default=dict)
+
     scan_job = relationship("ScanJob", back_populates="matches")
 
 

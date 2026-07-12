@@ -8,6 +8,7 @@ import NewScan from './pages/NewScan'
 import ScanList from './pages/ScanList'
 import ScanDetail from './pages/ScanDetail'
 import Results from './pages/Results'
+import Verification from './pages/Verification'
 
 function PrivateRoute({ children }) {
   const { token } = useAuth()
@@ -30,6 +31,7 @@ function App() {
                 <Route path="/scans" element={<ScanList />} />
                 <Route path="/scans/:id" element={<ScanDetail />} />
                 <Route path="/results" element={<Results />} />
+                <Route path="/verification" element={<Verification />} />
               </Routes>
             </Layout>
           </PrivateRoute>

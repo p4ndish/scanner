@@ -375,3 +375,253 @@ def run_scan_task(self, scan_id: int):
         raise
     finally:
         db.close()
+
+
+# ─── Match Verification Task ───
+
+def _probe_llm(match, prompt, timeout=10):
+    """Send a prompt to an LLM endpoint and return the response text or None on failure."""
+    import requests
+
+    base_url = f"{match.scheme}://{match.ip}:{match.port}"
+    service = match.service or "unknown"
+
+    try:
+        if service in ("ollama",):
+            r = requests.post(
+                f"{base_url}/api/generate",
+                json={"model": "", "prompt": prompt, "stream": False},
+                timeout=timeout,
+            )
+            if r.status_code == 200:
+                return r.json().get("response", "")
+            return None
+
+        elif service in ("vllm", "textgen", "llamacpp", "openwebui", "anythingllm", "lm_studio"):
+            r = requests.post(
+                f"{base_url}/v1/chat/completions",
+                json={
+                    "model": "",
+                    "messages": [{"role": "user", "content": prompt}],
+                    "max_tokens": 50,
+                    "stream": False,
+                },
+                timeout=timeout,
+            )
+            if r.status_code == 200:
+                choice = r.json().get("choices", [{}])[0]
+                msg = choice.get("message", {})
+                return msg.get("content", "")
+            return None
+
+        elif service == "kobold":
+            r = requests.post(
+                f"{base_url}/api/v1/generate",
+                json={"prompt": prompt, "max_length": 50},
+                timeout=timeout,
+            )
+            if r.status_code == 200:
+                results = r.json().get("results", [{}])
+                return results[0].get("text", "")
+            return None
+
+        else:
+            # Fallback: try OpenAI-compatible
+            r = requests.post(
+                f"{base_url}/v1/chat/completions",
+                json={
+                    "model": "",
+                    "messages": [{"role": "user", "content": prompt}],
+                    "max_tokens": 50,
+                    "stream": False,
+                },
+                timeout=timeout,
+            )
+            if r.status_code == 200:
+                choice = r.json().get("choices", [{}])[0]
+                msg = choice.get("message", {})
+                return msg.get("content", "")
+            return None
+
+    except Exception:
+        return None
+
+
+def _verify_single_match(match_dict):
+    """Verify a single match. Returns (match_id, status, details)."""
+    from types import SimpleNamespace
+    match = SimpleNamespace(**match_dict)
+
+    # Check 1: Canary token
+    resp1 = _probe_llm(match, "reply only H3llo")
+    canary_pass = resp1 is not None and "H3llo" in resp1
+
+    # Check 2: Math question
+    resp2 = _probe_llm(match, "What is 7 + 5?")
+    math_pass = resp2 is not None and "12" in resp2
+
+    # Check 3: Consistency (same prompt again)
+    resp3 = _probe_llm(match, "reply only H3llo")
+    consistency_pass = resp3 is not None and resp1 != resp3
+
+    if resp1 is None and resp2 is None and resp3 is None:
+        status = "unreachable"
+    elif canary_pass and math_pass and consistency_pass:
+        status = "legitimate"
+    else:
+        status = "honeypot"
+
+    details = {
+        "canary_pass": canary_pass,
+        "math_pass": math_pass,
+        "consistency_pass": consistency_pass,
+        "responses": [
+            {"check": "canary", "prompt": "reply only H3llo", "response": resp1},
+            {"check": "math", "prompt": "What is 7 + 5?", "response": resp2},
+            {"check": "consistency", "prompt": "reply only H3llo", "response": resp3},
+        ],
+    }
+
+    return match.id, status, details
+
+
+@celery_app.task(bind=True, max_retries=0)
+def verify_matches_task(self, user_id: int, filters: dict = None):
+    """Background task to verify LLM matches using 3-check honeypot detection."""
+    import concurrent.futures
+    import redis
+    import os
+
+    db = SessionLocal()
+    try:
+        redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
+        r = redis.from_url(redis_url)
+
+        # Mark as running immediately
+        r.setex(
+            f"verify:{user_id}:progress",
+            3600,
+            json.dumps({"total": 0, "done": 0, "state": "running", "message": "Loading matches..."}),
+        )
+
+        # Build query — only select columns we need (much faster)
+        q = db.query(
+            Match.id, Match.ip, Match.port, Match.scheme, Match.service
+        ).join(ScanJob).filter(
+            ScanJob.user_id == user_id,
+            Match.verified_status.in_(["pending", "unreachable"]),
+        )
+
+        if filters:
+            if filters.get("provider"):
+                q = q.filter(Match.provider == filters["provider"])
+            if filters.get("service"):
+                q = q.filter(Match.service == filters["service"])
+            if filters.get("scan_id"):
+                q = q.filter(Match.scan_job_id == filters["scan_id"])
+            if filters.get("verified_status"):
+                q = q.filter(Match.verified_status == filters["verified_status"])
+            if filters.get("match_ids"):
+                q = q.filter(Match.id.in_(filters["match_ids"]))
+            elif filters.get("all_unreachable"):
+                q = q.filter(Match.verified_status == "unreachable")
+
+        rows = q.all()
+        total = len(rows)
+
+        if total == 0:
+            r.setex(
+                f"verify:{user_id}:progress",
+                3600,
+                json.dumps({"total": 0, "done": 0, "state": "completed"}),
+            )
+            return
+
+        # Convert to dicts for pickling in ThreadPoolExecutor
+        match_dicts = [
+            {"id": rid, "ip": ip, "port": port, "scheme": scheme, "service": svc}
+            for rid, ip, port, scheme, svc in rows
+        ]
+
+        counts = {"legitimate": 0, "honeypot": 0, "unreachable": 0}
+        done = 0
+        batch_updates = []
+        BATCH_SIZE = 500
+
+        def update_progress():
+            r.setex(
+                f"verify:{user_id}:progress",
+                3600,
+                json.dumps({
+                    "total": total,
+                    "done": done,
+                    "legitimate": counts["legitimate"],
+                    "honeypot": counts["honeypot"],
+                    "unreachable": counts["unreachable"],
+                    "state": "running",
+                }),
+            )
+
+        # Run verification with ThreadPoolExecutor
+        with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
+            futures = {executor.submit(_verify_single_match, md): md for md in match_dicts}
+
+            for future in concurrent.futures.as_completed(futures):
+                match_id, status, details = future.result()
+                counts[status] += 1
+                done += 1
+
+                batch_updates.append((match_id, status, details))
+
+                # Flush batch to DB
+                if len(batch_updates) >= BATCH_SIZE:
+                    for mid, st, det in batch_updates:
+                        db.query(Match).filter(Match.id == mid).update({
+                            "verified_status": st,
+                            "verified_at": datetime.utcnow(),
+                            "verification_details": det,
+                        })
+                    db.commit()
+                    batch_updates = []
+                    update_progress()
+
+        # Final batch
+        if batch_updates:
+            for mid, st, det in batch_updates:
+                db.query(Match).filter(Match.id == mid).update({
+                    "verified_status": st,
+                    "verified_at": datetime.utcnow(),
+                    "verification_details": det,
+                })
+            db.commit()
+
+        # Final progress
+        r.setex(
+            f"verify:{user_id}:progress",
+            3600,
+            json.dumps({
+                "total": total,
+                "done": done,
+                "legitimate": counts["legitimate"],
+                "honeypot": counts["honeypot"],
+                "unreachable": counts["unreachable"],
+                "state": "completed",
+            }),
+        )
+
+    except Exception as exc:
+        import traceback
+        r = redis.from_url(os.getenv("REDIS_URL", "redis://redis:6379/0"))
+        r.setex(
+            f"verify:{user_id}:progress",
+            3600,
+            json.dumps({
+                "total": total if 'total' in dir() else 0,
+                "done": done if 'done' in dir() else 0,
+                "state": "failed",
+                "error": str(exc),
+            }),
+        )
+        raise
+    finally:
+        db.close()

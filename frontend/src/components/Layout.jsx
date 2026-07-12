@@ -7,6 +7,7 @@ import {
   Search,
   LogOut,
   Radar,
+  ShieldCheck,
 } from 'lucide-react'
 
 const nav = [
@@ -14,6 +15,7 @@ const nav = [
   { path: '/scans/new', label: 'New Scan', icon: PlusCircle },
   { path: '/scans', label: 'Scans', icon: List },
   { path: '/results', label: 'Results', icon: Search },
+  { path: '/verification', label: 'Verification', icon: ShieldCheck },
 ]
 
 export default function Layout({ children }) {

@@ -1,0 +1,505 @@
+import { useEffect, useState, useCallback } from 'react'
+import { api } from '../lib/api'
+import {
+  ShieldCheck,
+  Trash2,
+  RefreshCw,
+  Play,
+  AlertTriangle,
+  CheckCircle2,
+  XCircle,
+  HelpCircle,
+  WifiOff,
+  Filter,
+  ChevronDown,
+} from 'lucide-react'
+
+const STATUS_COLORS = {
+  pending: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+  legitimate: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+  honeypot: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
+  unreachable: 'bg-slate-700 text-slate-400 border-slate-600',
+}
+
+const STATUS_ICONS = {
+  pending: HelpCircle,
+  legitimate: CheckCircle2,
+  honeypot: XCircle,
+  unreachable: WifiOff,
+}
+
+const PER_PAGE_OPTIONS = [10, 25, 50, 100]
+
+export default function Verification() {
+  const [matches, setMatches] = useState([])
+  const [pagination, setPagination] = useState({ total: 0, page: 1, per_page: 25, pages: 0 })
+  const [filters, setFilters] = useState({ provider: '', service: '', verified_status: '' })
+  const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState({ by_verified: {} })
+  const [progress, setProgress] = useState(null)
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [deleteConfirm, setDeleteConfirm] = useState(null)
+
+  const verifiedCounts = stats.by_verified || {}
+  const pendingCount = verifiedCounts.pending || 0
+  const legitCount = verifiedCounts.legitimate || 0
+  const honeypotCount = verifiedCounts.honeypot || 0
+  const unreachableCount = verifiedCounts.unreachable || 0
+
+  const load = useCallback(async (page = pagination.page, perPage = pagination.per_page) => {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (filters.provider) params.set('provider', filters.provider)
+      if (filters.service) params.set('service', filters.service)
+      if (filters.verified_status) params.set('verified_status', filters.verified_status)
+      params.set('page', String(page))
+      params.set('per_page', String(perPage))
+      const res = await api.get(`/matches?${params.toString()}`)
+      setMatches(res.items || [])
+      setPagination({
+        total: res.total,
+        page: res.page,
+        per_page: res.per_page,
+        pages: res.pages,
+      })
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
+  }, [filters, pagination.page, pagination.per_page])
+
+  const loadStats = useCallback(async () => {
+    try {
+      const res = await api.get('/matches/stats')
+      setStats(res)
+    } catch (e) {
+      console.error(e)
+    }
+  }, [])
+
+  const loadProgress = useCallback(async () => {
+    try {
+      const res = await api.get('/matches/verification-status')
+      setProgress(res)
+    } catch (e) {
+      console.error(e)
+    }
+  }, [])
+
+  useEffect(() => {
+    load(1, pagination.per_page)
+    loadStats()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters])
+
+  useEffect(() => {
+    loadProgress()
+    const interval = setInterval(() => {
+      loadProgress()
+      loadStats()
+    }, 3000)
+    return () => clearInterval(interval)
+  }, [loadProgress, loadStats])
+
+  function goToPage(page) {
+    if (page < 1 || page > pagination.pages) return
+    load(page, pagination.per_page)
+  }
+
+  function changePerPage(perPage) {
+    load(1, perPage)
+  }
+
+  function toggleSelect(id) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.size === matches.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(matches.map((m) => m.id)))
+    }
+  }
+
+  async function startVerification() {
+    try {
+      const res = await api.post('/matches/verify', {
+        provider: filters.provider || undefined,
+        service: filters.service || undefined,
+        verified_status: 'pending',
+      })
+      alert(`Verification queued for ${res.total.toLocaleString()} matches`)
+      loadProgress()
+    } catch (e) {
+      alert('Failed to start: ' + e.message)
+    }
+  }
+
+  async function reverifyUnreachable() {
+    try {
+      const res = await api.post('/matches/reverify', { all_unreachable: true })
+      alert(`Re-verification queued for ${res.total.toLocaleString()} unreachable matches`)
+      loadProgress()
+    } catch (e) {
+      alert('Failed to re-verify: ' + e.message)
+    }
+  }
+
+  async function deleteSelected() {
+    if (selectedIds.size === 0) return
+    try {
+      await api.delete('/matches/bulk', { match_ids: Array.from(selectedIds) })
+      setSelectedIds(new Set())
+      load(1, pagination.per_page)
+      loadStats()
+    } catch (e) {
+      alert('Delete failed: ' + e.message)
+    }
+  }
+
+  async function deleteAllHoneypots() {
+    try {
+      await api.delete('/matches/bulk', { verified_status: 'honeypot' })
+      setDeleteConfirm(null)
+      load(1, pagination.per_page)
+      loadStats()
+    } catch (e) {
+      alert('Delete failed: ' + e.message)
+    }
+  }
+
+  const isRunning = progress && progress.state === 'running'
+  const progressPct = progress && progress.total > 0
+    ? Math.round((progress.done / progress.total) * 100)
+    : 0
+
+  const startItem = (pagination.page - 1) * pagination.per_page + 1
+  const endItem = Math.min(pagination.page * pagination.per_page, pagination.total)
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Verification</h1>
+          <p className="text-slate-400 text-sm mt-1">
+            Honeypot detection via 3-check LLM probing
+          </p>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+          <div className="flex items-center gap-2 text-amber-400 mb-1">
+            <HelpCircle className="w-4 h-4" />
+            <span className="text-xs font-medium uppercase tracking-wider">Pending</span>
+          </div>
+          <div className="text-2xl font-bold">{pendingCount.toLocaleString()}</div>
+        </div>
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+          <div className="flex items-center gap-2 text-emerald-400 mb-1">
+            <CheckCircle2 className="w-4 h-4" />
+            <span className="text-xs font-medium uppercase tracking-wider">Legitimate</span>
+          </div>
+          <div className="text-2xl font-bold">{legitCount.toLocaleString()}</div>
+        </div>
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+          <div className="flex items-center gap-2 text-rose-400 mb-1">
+            <XCircle className="w-4 h-4" />
+            <span className="text-xs font-medium uppercase tracking-wider">Honeypot</span>
+          </div>
+          <div className="text-2xl font-bold">{honeypotCount.toLocaleString()}</div>
+        </div>
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+          <div className="flex items-center gap-2 text-slate-400 mb-1">
+            <WifiOff className="w-4 h-4" />
+            <span className="text-xs font-medium uppercase tracking-wider">Unreachable</span>
+          </div>
+          <div className="text-2xl font-bold">{unreachableCount.toLocaleString()}</div>
+        </div>
+      </div>
+
+      {/* Progress Bar */}
+      {isRunning && progress && (
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-slate-300">Verifying...</span>
+            <span className="text-sm text-slate-400">
+              {progress.done.toLocaleString()} / {progress.total.toLocaleString()} ({progressPct}%)
+            </span>
+          </div>
+          <div className="w-full bg-slate-800 rounded-full h-2">
+            <div
+              className="bg-emerald-500 h-2 rounded-full transition-all duration-500"
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+          <div className="flex gap-4 mt-2 text-xs text-slate-500">
+            <span className="text-emerald-400">Legitimate: {progress.legitimate || 0}</span>
+            <span className="text-rose-400">Honeypot: {progress.honeypot || 0}</span>
+            <span className="text-slate-400">Unreachable: {progress.unreachable || 0}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Action Bar */}
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={startVerification}
+          disabled={isRunning || pendingCount === 0}
+          className="inline-flex items-center px-3 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed border border-emerald-500 rounded-lg text-sm font-medium transition-colors"
+        >
+          <Play className="w-4 h-4 mr-2" />
+          Verify All Pending
+        </button>
+        <button
+          onClick={reverifyUnreachable}
+          disabled={isRunning || unreachableCount === 0}
+          className="inline-flex items-center px-3 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed border border-slate-700 rounded-lg text-sm font-medium transition-colors"
+        >
+          <RefreshCw className="w-4 h-4 mr-2" />
+          Re-verify Unreachable
+        </button>
+        <button
+          onClick={() => setDeleteConfirm('honeypots')}
+          disabled={honeypotCount === 0}
+          className="inline-flex items-center px-3 py-2 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 disabled:cursor-not-allowed border border-rose-500 rounded-lg text-sm font-medium transition-colors"
+        >
+          <Trash2 className="w-4 h-4 mr-2" />
+          Delete All Honeypots
+        </button>
+        {selectedIds.size > 0 && (
+          <button
+            onClick={() => setDeleteConfirm('selected')}
+            className="inline-flex items-center px-3 py-2 bg-rose-600 hover:bg-rose-500 border border-rose-500 rounded-lg text-sm font-medium transition-colors"
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Delete Selected ({selectedIds.size})
+          </button>
+        )}
+      </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 max-w-md w-full mx-4">
+            <div className="flex items-center gap-3 mb-4">
+              <AlertTriangle className="w-6 h-6 text-amber-400" />
+              <h3 className="text-lg font-bold">Confirm Deletion</h3>
+            </div>
+            <p className="text-slate-300 mb-6">
+              {deleteConfirm === 'honeypots'
+                ? `Delete all ${honeypotCount.toLocaleString()} honeypot matches? This cannot be undone.`
+                : `Delete ${selectedIds.size} selected matches? This cannot be undone.`}
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-sm font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={deleteConfirm === 'honeypots' ? deleteAllHoneypots : deleteSelected}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Filters */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
+        <div className="flex flex-wrap gap-3 items-center">
+          <Filter className="w-4 h-4 text-slate-500 shrink-0" />
+          <input
+            type="text" placeholder="Provider..."
+            value={filters.provider}
+            onChange={(e) => setFilters((f) => ({ ...f, provider: e.target.value }))}
+            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+          />
+          <input
+            type="text" placeholder="Service..."
+            value={filters.service}
+            onChange={(e) => setFilters((f) => ({ ...f, service: e.target.value }))}
+            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+          />
+          <select
+            value={filters.verified_status}
+            onChange={(e) => setFilters((f) => ({ ...f, verified_status: e.target.value }))}
+            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+          >
+            <option value="">All statuses</option>
+            <option value="pending">Pending</option>
+            <option value="legitimate">Legitimate</option>
+            <option value="honeypot">Honeypot</option>
+            <option value="unreachable">Unreachable</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-slate-800/50 text-slate-400 text-xs uppercase">
+              <tr>
+                <th className="px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={matches.length > 0 && selectedIds.size === matches.length}
+                    onChange={toggleSelectAll}
+                    className="rounded border-slate-600 bg-slate-800 text-emerald-500 focus:ring-emerald-500/50"
+                  />
+                </th>
+                <th className="px-6 py-3">IP:Port</th>
+                <th className="px-6 py-3">Service</th>
+                <th className="px-6 py-3">Provider</th>
+                <th className="px-6 py-3">Score</th>
+                <th className="px-6 py-3">Status</th>
+                <th className="px-6 py-3">Details</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800">
+              {loading && (
+                <tr>
+                  <td colSpan={7} className="px-6 py-8 text-center">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-400 mx-auto" />
+                  </td>
+                </tr>
+              )}
+              {!loading && matches.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
+                    No matches found.
+                  </td>
+                </tr>
+              )}
+              {matches.map((m) => {
+                const StatusIcon = STATUS_ICONS[m.verified_status] || HelpCircle
+                const details = m.verification_details || {}
+                return (
+                  <tr key={m.id} className="hover:bg-slate-800/30 transition-colors">
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(m.id)}
+                        onChange={() => toggleSelect(m.id)}
+                        className="rounded border-slate-600 bg-slate-800 text-emerald-500 focus:ring-emerald-500/50"
+                      />
+                    </td>
+                    <td className="px-6 py-3 font-mono text-emerald-400">
+                      {m.ip}:{m.port}
+                    </td>
+                    <td className="px-6 py-3">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border bg-slate-800 text-slate-300 border-slate-700">
+                        {m.service}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3 text-slate-400 capitalize">{m.provider?.replace('_', ' ') || '—'}</td>
+                    <td className="px-6 py-3">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/10 text-emerald-400">
+                        {m.score}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3">
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border ${STATUS_COLORS[m.verified_status] || STATUS_COLORS.pending}`}>
+                        <StatusIcon className="w-3 h-3" />
+                        {m.verified_status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3">
+                      {details.responses && (
+                        <div className="text-xs text-slate-500 space-y-0.5">
+                          <div className={details.canary_pass ? 'text-emerald-400' : 'text-rose-400'}>
+                            Canary: {details.canary_pass ? 'Pass' : 'Fail'}
+                          </div>
+                          <div className={details.math_pass ? 'text-emerald-400' : 'text-rose-400'}>
+                            Math: {details.math_pass ? 'Pass' : 'Fail'}
+                          </div>
+                          <div className={details.consistency_pass ? 'text-emerald-400' : 'text-rose-400'}>
+                            Consistency: {details.consistency_pass ? 'Pass' : 'Fail'}
+                          </div>
+                        </div>
+                      )}
+                      {!details.responses && (
+                        <span className="text-xs text-slate-600">Not checked</span>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination */}
+        {pagination.pages > 1 && (
+          <div className="px-6 py-4 border-t border-slate-800 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-slate-400">
+                Page <span className="font-medium text-slate-200">{pagination.page}</span> of {pagination.pages}
+              </span>
+              <select
+                value={pagination.per_page}
+                onChange={(e) => changePerPage(Number(e.target.value))}
+                className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-300 focus:outline-none"
+              >
+                {PER_PAGE_OPTIONS.map((n) => (
+                  <option key={n} value={n}>{n} / page</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => goToPage(pagination.page - 1)}
+                disabled={pagination.page <= 1}
+                className="p-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-slate-200 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronDown className="w-4 h-4 rotate-90" />
+              </button>
+              {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
+                let start = Math.max(1, pagination.page - 2)
+                let end = Math.min(pagination.pages, start + 4)
+                if (end - start < 4) start = Math.max(1, end - 4)
+                const page = start + i
+                if (page > pagination.pages) return null
+                return (
+                  <button
+                    key={page}
+                    onClick={() => goToPage(page)}
+                    className={`min-w-[2rem] px-2 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                      page === pagination.page
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-slate-800 border border-slate-700 text-slate-400 hover:text-slate-200 hover:bg-slate-700'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                )
+              })}
+              <button
+                onClick={() => goToPage(pagination.page + 1)}
+                disabled={pagination.page >= pagination.pages}
+                className="p-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-slate-200 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronDown className="w-4 h-4 -rotate-90" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

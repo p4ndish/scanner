@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { api } from '../lib/api'
-import { Download, Filter, Upload, Brain, Code2, Zap, ChevronDown, ChevronRight } from 'lucide-react'
+import { Download, Filter, Upload, Brain, Code2, Zap, ChevronDown, ChevronRight, ShieldCheck } from 'lucide-react'
 
 const SERVICE_COLORS = {
   ollama: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
@@ -35,10 +35,11 @@ const PER_PAGE_OPTIONS = [10, 25, 50, 100]
 export default function Results() {
   const [matches, setMatches] = useState([])
   const [pagination, setPagination] = useState({ total: 0, page: 1, per_page: 25, pages: 0 })
-  const [filters, setFilters] = useState({ provider: '', service: '', min_score: '', max_score: '', model: '', llm_mode: '' })
+  const [filters, setFilters] = useState({ provider: '', service: '', min_score: '', max_score: '', model: '', llm_mode: '', verified_status: '' })
   const [loading, setLoading] = useState(true)
   const [importing, setImporting] = useState(false)
   const [importStatus, setImportStatus] = useState('')
+  const [verifying, setVerifying] = useState(false)
   const fileInputRef = useRef(null)
 
   // Per-row expanded state: { [matchId]: true }
@@ -56,6 +57,7 @@ export default function Results() {
       if (filters.min_score) params.set('min_score', filters.min_score)
       if (filters.max_score) params.set('max_score', filters.max_score)
       if (filters.llm_mode !== '') params.set('llm_mode', filters.llm_mode)
+      if (filters.verified_status) params.set('verified_status', filters.verified_status)
       params.set('page', String(page))
       params.set('per_page', String(perPage))
       const res = await api.get(`/matches?${params.toString()}`)
@@ -233,6 +235,22 @@ export default function Results() {
     e.target.value = ''
   }
 
+  async function startVerification() {
+    setVerifying(true)
+    try {
+      const res = await api.post('/matches/verify', {
+        provider: filters.provider || undefined,
+        service: filters.service || undefined,
+        verified_status: 'pending',
+      })
+      alert(`Verification queued for ${res.total.toLocaleString()} matches`)
+    } catch (e) {
+      alert('Failed to start verification: ' + e.message)
+    } finally {
+      setVerifying(false)
+    }
+  }
+
   function getModelTags(match) {
     const details = match.details_json || {}
     const tags = []
@@ -280,6 +298,18 @@ export default function Results() {
           <button onClick={exportJSON} className="inline-flex items-center px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors">
             <Download className="w-4 h-4 mr-2" /> JSON
           </button>
+          <button
+            onClick={startVerification}
+            disabled={verifying}
+            className="inline-flex items-center px-3 py-2 bg-amber-600 hover:bg-amber-500 border border-amber-500 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+          >
+            {verifying ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+            ) : (
+              <ShieldCheck className="w-4 h-4 mr-2" />
+            )}
+            Verify Pending
+          </button>
         </div>
       </div>
 
@@ -310,6 +340,17 @@ export default function Results() {
             <option value="">All modes</option>
             <option value="false">OpenCode</option>
             <option value="true">LLM</option>
+          </select>
+          <select
+            value={filters.verified_status}
+            onChange={(e) => setFilters((f) => ({ ...f, verified_status: e.target.value }))}
+            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+          >
+            <option value="">All statuses</option>
+            <option value="pending">Pending</option>
+            <option value="legitimate">Legitimate</option>
+            <option value="honeypot">Honeypot</option>
+            <option value="unreachable">Unreachable</option>
           </select>
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-500">Score</span>
@@ -347,19 +388,20 @@ export default function Results() {
                 <th className="px-6 py-3">Models / Tags</th>
                 <th className="px-6 py-3">Provider</th>
                 <th className="px-6 py-3">Score</th>
+                <th className="px-6 py-3">Verified</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
               {loading && (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center">
+                  <td colSpan={8} className="px-6 py-8 text-center">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-400 mx-auto" />
                   </td>
                 </tr>
               )}
               {!loading && matches.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
+                  <td colSpan={8} className="px-6 py-8 text-center text-slate-500">
                     No matches found.
                     <br />
                     <span className="text-xs">Run a scan or import CLI results.</span>
@@ -419,12 +461,31 @@ export default function Results() {
                           {m.score}
                         </span>
                       </td>
+                      <td className="px-6 py-3">
+                        {m.verified_status === 'legitimate' ? (
+                          <span className="inline-flex items-center text-xs bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded">
+                            Legitimate
+                          </span>
+                        ) : m.verified_status === 'honeypot' ? (
+                          <span className="inline-flex items-center text-xs bg-rose-500/10 text-rose-400 px-1.5 py-0.5 rounded">
+                            Honeypot
+                          </span>
+                        ) : m.verified_status === 'unreachable' ? (
+                          <span className="inline-flex items-center text-xs bg-slate-700 text-slate-400 px-1.5 py-0.5 rounded">
+                            Unreachable
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center text-xs bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded">
+                            Pending
+                          </span>
+                        )}
+                      </td>
                     </tr>
 
                     {/* Expanded test panel */}
                     {isExpanded && m.scan_job?.llm_mode && (
                       <tr key={`${m.id}-expanded`}>
-                        <td colSpan={7} className="px-0 py-0">
+                        <td colSpan={8} className="px-0 py-0">
                           <div className="bg-slate-950/50 border-y border-slate-800/50 px-6 py-5 space-y-4">
                             {/* Models */}
                             <div>
