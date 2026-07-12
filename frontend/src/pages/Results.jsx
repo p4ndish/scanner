@@ -38,6 +38,7 @@ export default function Results() {
   const [filters, setFilters] = useState({ provider: '', service: '', min_score: '', max_score: '', model: '', llm_mode: '' })
   const [loading, setLoading] = useState(true)
   const [importing, setImporting] = useState(false)
+  const [importStatus, setImportStatus] = useState('')
   const fileInputRef = useRef(null)
 
   // Per-row expanded state: { [matchId]: true }
@@ -202,7 +203,9 @@ export default function Results() {
 
   async function importCli(file) {
     if (!file) return
+    const sizeMB = (file.size / (1024 * 1024)).toFixed(1)
     setImporting(true)
+    setImportStatus(`Uploading ${sizeMB} MB...`)
     try {
       const formData = new FormData()
       formData.append('file', file)
@@ -211,14 +214,16 @@ export default function Results() {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         body: formData,
       })
+      setImportStatus('Processing...')
       const data = await res.json()
       if (!res.ok) throw new Error(data.detail || 'Import failed')
-      alert(`Imported ${data.imported} matches from CLI results!`)
+      alert(`Imported ${data.imported.toLocaleString()} matches from CLI results!`)
       load(1, pagination.per_page)
     } catch (e) {
       alert(e.message)
     } finally {
       setImporting(false)
+      setImportStatus('')
     }
   }
 
@@ -267,7 +272,7 @@ export default function Results() {
             className="inline-flex items-center px-3 py-2 bg-emerald-600 hover:bg-emerald-500 border border-emerald-500 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
           >
             <Upload className="w-4 h-4 mr-2" />
-            {importing ? 'Importing...' : 'Import CLI Results'}
+            {importing ? (importStatus || 'Importing...') : 'Import CLI Results'}
           </button>
           <button onClick={exportCSV} className="inline-flex items-center px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors">
             <Download className="w-4 h-4 mr-2" /> CSV
