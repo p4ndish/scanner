@@ -100,14 +100,11 @@ def import_cli_results(
 ):
     """Import results from a CLI scanner results.json file into the web database.
 
-    Supports huge files (500MB+) via streaming parse + batch insert.
+    Supports huge files (500MB+) via streaming parse + PostgreSQL COPY.
     """
-    import json
     import tempfile
     import os
-    from datetime import datetime
-    from backend.app.models import ScanJob, Match
-    from backend.app.streaming_json import stream_matches_from_file
+    from backend.app.import_core import fast_import_results
 
     if not file.filename.endswith('.json'):
         raise HTTPException(status_code=400, detail="Only JSON files are accepted")
@@ -116,8 +113,6 @@ def import_cli_results(
     tmp_path = None
     try:
         with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.json') as tmp:
-            # FastAPI UploadFile is already a SpooledTemporaryFile, but for mmap
-            # we need an actual on-disk file. Copy in 8MB chunks.
             while True:
                 chunk = file.file.read(8 * 1024 * 1024)
                 if not chunk:
@@ -125,91 +120,12 @@ def import_cli_results(
                 tmp.write(chunk)
             tmp_path = tmp.name
 
-        # Peek at first match to detect LLM mode
-        is_llm = False
-        ports_seen = set()
-        first_match = None
-        match_count = 0
-
-        for m in stream_matches_from_file(tmp_path):
-            if first_match is None:
-                first_match = m
-            ports_seen.add(str(m.get("port", 0)))
-            svc = m.get("service", "")
-            if svc in ("ollama", "vllm", "vllm_compat", "llamacpp", "kobold", "textgen", "lm_studio", "anythingllm", "openwebui"):
-                is_llm = True
-            match_count += 1
-            if match_count >= 5:
-                break
-
-        if match_count == 0:
-            # File might be huge, stream again to check for any matches
-            for _ in stream_matches_from_file(tmp_path):
-                match_count += 1
-                break
-            if match_count == 0:
-                os.unlink(tmp_path)
-                raise HTTPException(status_code=400, detail="No matches found in uploaded file (matches array is empty)")
-
-        # Create scan job
-        job = ScanJob(
-            user_id=current_user.id,
-            name=f"CLI Import {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}",
-            status="completed",
-            providers=["cli_import"],
-            ports=list(ports_seen) or ["0"],
-            llm_mode=is_llm,
-            score_threshold=5,
-            stats_json={"matches_found": match_count},
-            started_at=datetime.utcnow(),
-            completed_at=datetime.utcnow(),
-        )
-        db.add(job)
-        db.commit()
-        db.refresh(job)
-
-        # Stream matches again and batch insert
-        imported = 0
-        batch = []
-        BATCH_SIZE = 1000
-
-        for m in stream_matches_from_file(tmp_path):
-            batch.append(Match(
-                scan_job_id=job.id,
-                ip=m.get("ip", "unknown"),
-                port=m.get("port", 0),
-                scheme=m.get("scheme", "http"),
-                score=m.get("score", 0),
-                service=m.get("service", "unknown"),
-                provider=m.get("provider"),
-                region=m.get("region"),
-                methods_hit=m.get("methods_hit", []),
-                details_json=m.get("details", {}),
-            ))
-            if len(batch) >= BATCH_SIZE:
-                db.bulk_save_objects(batch)
-                db.commit()
-                imported += len(batch)
-                batch = []
-
-        if batch:
-            db.bulk_save_objects(batch)
-            db.commit()
-            imported += len(batch)
-
-        # Update stats with real count
-        job.stats_json = {"matches_found": imported}
-        db.commit()
-
-        return {"imported": imported, "scan_job_id": job.id}
+        imported, job_id = fast_import_results(tmp_path, user_id=current_user.id, batch_size=50000, db_session=db)
+        return {"imported": imported, "scan_job_id": job_id}
 
     except ValueError as e:
-        if tmp_path and os.path.exists(tmp_path):
-            os.unlink(tmp_path)
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        if tmp_path and os.path.exists(tmp_path):
-            os.unlink(tmp_path)
         raise HTTPException(status_code=500, detail=f"Import failed: {str(e)[:200]}")
     finally:
         if tmp_path and os.path.exists(tmp_path):
