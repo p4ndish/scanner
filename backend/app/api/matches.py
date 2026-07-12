@@ -120,8 +120,8 @@ def import_cli_results(
                 tmp.write(chunk)
             tmp_path = tmp.name
 
-        imported, job_id = fast_import_results(tmp_path, user_id=current_user.id, batch_size=50000, db_session=db)
-        return {"imported": imported, "scan_job_id": job_id}
+        imported, skipped, job_id = fast_import_results(tmp_path, user_id=current_user.id, batch_size=50000, db_session=db)
+        return {"imported": imported, "skipped": skipped, "scan_job_id": job_id}
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

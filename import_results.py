@@ -38,10 +38,12 @@ def main():
     print("Importing via PostgreSQL COPY...")
 
     t0 = time.time()
-    imported, job_id = fast_import_results(str(filepath), user_id=args.user_id, batch_size=args.batch_size)
+    imported, skipped, job_id = fast_import_results(str(filepath), user_id=args.user_id, batch_size=args.batch_size)
     elapsed = time.time() - t0
 
     print(f"\nDone! Imported {imported:,} matches in {elapsed:.1f}s ({imported/elapsed:,.0f}/sec)")
+    if skipped:
+        print(f"Skipped {skipped:,} duplicates")
     print(f"Scan job #{job_id}")
 
 

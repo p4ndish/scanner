@@ -17,7 +17,10 @@ from backend.app.streaming_json import stream_matches_from_file
 def fast_import_results(filepath: str, user_id: int = 1, batch_size: int = 50000, db_session=None):
     """
     Import a results.json file into PostgreSQL using COPY.
-    Returns (imported_count, scan_job_id).
+    Skips duplicates: any (ip, port) already owned by this user is ignored.
+    Also deduplicates within the same file (only first occurrence kept).
+
+    Returns (imported_count, skipped_count, scan_job_id).
 
     If db_session is provided, uses it for the ScanJob creation (web mode).
     Otherwise creates its own session (CLI mode).
@@ -37,6 +40,20 @@ def fast_import_results(filepath: str, user_id: int = 1, batch_size: int = 50000
         db = Session()
     else:
         db = db_session
+
+    # ── Load existing (ip, port) pairs for this user ──
+    existing = set()
+    t0 = time.time()
+    rows = (
+        db.query(Match.ip, Match.port)
+        .join(ScanJob)
+        .filter(ScanJob.user_id == user_id)
+        .all()
+    )
+    existing = {(r.ip, r.port) for r in rows}
+    dedup_time = time.time() - t0
+    if existing:
+        print(f"  {len(existing):,} existing matches loaded for dedup ({dedup_time:.1f}s)")
 
     # Peek at first few matches
     is_llm = False
@@ -85,14 +102,25 @@ def fast_import_results(filepath: str, user_id: int = 1, batch_size: int = 50000
     cursor = raw_conn.cursor()
 
     imported = 0
+    skipped = 0
     buf = io.StringIO()
     writer = csv.writer(buf, delimiter='\t', quoting=csv.QUOTE_NONE, escapechar='\\')
 
     for m in stream_matches_from_file(str(filepath)):
+        ip = m.get("ip", "unknown")
+        port = m.get("port", 0)
+        key = (ip, port)
+
+        if key in existing:
+            skipped += 1
+            continue
+
+        existing.add(key)  # prevent intra-file duplicates too
+
         writer.writerow([
             job.id,
-            m.get("ip", "unknown"),
-            m.get("port", 0),
+            ip,
+            port,
             m.get("scheme", "http"),
             m.get("score", 0),
             m.get("service", "unknown"),
@@ -132,10 +160,10 @@ def fast_import_results(filepath: str, user_id: int = 1, batch_size: int = 50000
     cursor.close()
 
     # Update stats
-    job.stats_json = {"matches_found": imported}
+    job.stats_json = {"matches_found": imported, "duplicates_skipped": skipped}
     db.commit()
 
     if owns_session:
         db.close()
 
-    return imported, job.id
+    return imported, skipped, job.id
