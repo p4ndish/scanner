@@ -379,72 +379,7 @@ def run_scan_task(self, scan_id: int):
 
 # ─── Match Verification Task ───
 
-def _probe_llm(match, prompt, timeout=10):
-    """Send a prompt to an LLM endpoint and return the response text or None on failure."""
-    import requests
-
-    base_url = f"{match.scheme}://{match.ip}:{match.port}"
-    service = match.service or "unknown"
-
-    try:
-        if service in ("ollama",):
-            r = requests.post(
-                f"{base_url}/api/generate",
-                json={"model": "", "prompt": prompt, "stream": False},
-                timeout=timeout,
-            )
-            if r.status_code == 200:
-                return r.json().get("response", "")
-            return None
-
-        elif service in ("vllm", "textgen", "llamacpp", "openwebui", "anythingllm", "lm_studio"):
-            r = requests.post(
-                f"{base_url}/v1/chat/completions",
-                json={
-                    "model": "",
-                    "messages": [{"role": "user", "content": prompt}],
-                    "max_tokens": 50,
-                    "stream": False,
-                },
-                timeout=timeout,
-            )
-            if r.status_code == 200:
-                choice = r.json().get("choices", [{}])[0]
-                msg = choice.get("message", {})
-                return msg.get("content", "")
-            return None
-
-        elif service == "kobold":
-            r = requests.post(
-                f"{base_url}/api/v1/generate",
-                json={"prompt": prompt, "max_length": 50},
-                timeout=timeout,
-            )
-            if r.status_code == 200:
-                results = r.json().get("results", [{}])
-                return results[0].get("text", "")
-            return None
-
-        else:
-            # Fallback: try OpenAI-compatible
-            r = requests.post(
-                f"{base_url}/v1/chat/completions",
-                json={
-                    "model": "",
-                    "messages": [{"role": "user", "content": prompt}],
-                    "max_tokens": 50,
-                    "stream": False,
-                },
-                timeout=timeout,
-            )
-            if r.status_code == 200:
-                choice = r.json().get("choices", [{}])[0]
-                msg = choice.get("message", {})
-                return msg.get("content", "")
-            return None
-
-    except Exception:
-        return None
+from backend.app.llm_probe import probe_prompt
 
 
 def _verify_single_match(match_dict):
@@ -452,16 +387,18 @@ def _verify_single_match(match_dict):
     from types import SimpleNamespace
     match = SimpleNamespace(**match_dict)
 
+    base_url = f"{match.scheme}://{match.ip}:{match.port}"
+
     # Check 1: Canary token
-    resp1 = _probe_llm(match, "reply only H3llo")
+    resp1 = probe_prompt(base_url, "reply only H3llo")
     canary_pass = resp1 is not None and "H3llo" in resp1
 
     # Check 2: Math question
-    resp2 = _probe_llm(match, "What is 7 + 5?")
+    resp2 = probe_prompt(base_url, "What is 7 + 5?")
     math_pass = resp2 is not None and "12" in resp2
 
     # Check 3: Consistency (same prompt again)
-    resp3 = _probe_llm(match, "reply only H3llo")
+    resp3 = probe_prompt(base_url, "reply only H3llo")
     consistency_pass = resp3 is not None and resp1 != resp3
 
     if resp1 is None and resp2 is None and resp3 is None:
