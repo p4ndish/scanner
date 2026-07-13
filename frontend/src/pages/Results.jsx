@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { api } from '../lib/api'
+import { useToast } from '../lib/toast'
 import { Download, Filter, Upload, Brain, Code2, Zap, ChevronDown, ChevronRight, ShieldCheck, Trash2, AlertTriangle } from 'lucide-react'
 
 const SERVICE_COLORS = {
@@ -47,6 +48,7 @@ const SERVICE_OPTIONS = [
 const PER_PAGE_OPTIONS = [10, 25, 50, 100]
 
 export default function Results() {
+  const { toast, confirm: toastConfirm } = useToast()
   const [matches, setMatches] = useState([])
   const [pagination, setPagination] = useState({ total: 0, page: 1, per_page: 25, pages: 0 })
   const [filters, setFilters] = useState({ provider: '', service: '', min_score: '', max_score: '', model: '', llm_mode: '', verified_status: '' })
@@ -262,10 +264,10 @@ export default function Results() {
       setImportStatus('Processing...')
       const data = await res.json()
       if (!res.ok) throw new Error(data.detail || 'Import failed')
-      alert(`Imported ${data.imported.toLocaleString()} matches from CLI results!`)
+      toast(`Imported ${data.imported.toLocaleString()} matches from CLI results!`)
       load(1, pagination.per_page)
     } catch (e) {
-      alert(e.message)
+      toast(e.message, 'error')
     } finally {
       setImporting(false)
       setImportStatus('')
@@ -286,9 +288,9 @@ export default function Results() {
         service: filters.service || undefined,
         verified_status: 'pending',
       })
-      alert(`Verification queued for ${res.total.toLocaleString()} matches`)
+      toast(`Verification queued for ${res.total.toLocaleString()} matches`)
     } catch (e) {
-      alert('Failed to start verification: ' + e.message)
+      toast('Failed to start verification: ' + e.message, 'error')
     } finally {
       setVerifying(false)
     }
@@ -340,7 +342,7 @@ export default function Results() {
       setBulkDeleteOpen(false)
       load(1, pagination.per_page)
     } catch (e) {
-      alert('Delete failed: ' + e.message)
+      toast('Delete failed: ' + e.message, 'error')
     }
   }
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { api } from '../lib/api'
+import { useToast } from '../lib/toast'
 import {
   Activity,
   CheckCircle,
@@ -11,6 +12,7 @@ import {
 } from 'lucide-react'
 
 export default function ScanDetail() {
+  const { toast, confirm: toastConfirm } = useToast()
   const { id } = useParams()
   const [scan, setScan] = useState(null)
   const [logs, setLogs] = useState([])
@@ -63,12 +65,13 @@ export default function ScanDetail() {
   }, [logs])
 
   async function cancelScan() {
-    if (!confirm('Cancel this scan?')) return
+    const ok = await toastConfirm('Cancel this scan?')
+    if (!ok) return
     try {
       await api.post(`/scans/${id}/cancel`, {})
       loadScan()
     } catch (e) {
-      alert(e.message)
+      toast(e.message, 'error')
     }
   }
 

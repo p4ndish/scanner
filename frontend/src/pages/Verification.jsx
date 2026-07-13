@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { api } from '../lib/api'
+import { useToast } from '../lib/toast'
 import {
   ShieldCheck,
   Trash2,
@@ -31,6 +32,7 @@ const STATUS_ICONS = {
 const PER_PAGE_OPTIONS = [10, 25, 50, 100]
 
 export default function Verification() {
+  const { toast, confirm: toastConfirm } = useToast()
   const [matches, setMatches] = useState([])
   const [pagination, setPagination] = useState({ total: 0, page: 1, per_page: 25, pages: 0 })
   const [filters, setFilters] = useState({ provider: '', service: '', verified_status: '' })
@@ -151,31 +153,32 @@ export default function Verification() {
         service: filters.service || undefined,
         verified_status: 'pending',
       })
-      alert(`Verification queued for ${res.total.toLocaleString()} matches`)
+      toast(`Verification queued for ${res.total.toLocaleString()} matches`)
       loadProgress()
     } catch (e) {
-      alert('Failed to start: ' + e.message)
+      toast('Failed to start: ' + e.message, 'error')
     }
   }
 
   async function reverifyUnreachable() {
     try {
       const res = await api.post('/matches/reverify', { all_unreachable: true })
-      alert(`Re-verification queued for ${res.total.toLocaleString()} unreachable matches`)
+      toast(`Re-verification queued for ${res.total.toLocaleString()} unreachable matches`)
       loadProgress()
     } catch (e) {
-      alert('Failed to re-verify: ' + e.message)
+      toast('Failed to re-verify: ' + e.message, 'error')
     }
   }
 
   async function reverifyAll() {
-    if (!confirm('This will reset ALL verified matches (legitimate, honeypot, unreachable) back to pending and re-run verification with the improved logic. Continue?')) return
+    const ok = await toastConfirm('This will reset ALL verified matches back to pending and re-run verification with the improved logic.')
+    if (!ok) return
     try {
       const res = await api.post('/matches/reverify-all', {})
-      alert(`Re-verify all queued for ${res.total.toLocaleString()} matches`)
+      toast(`Re-verify all queued for ${res.total.toLocaleString()} matches`)
       loadProgress()
     } catch (e) {
-      alert('Failed to re-verify all: ' + e.message)
+      toast('Failed to re-verify all: ' + e.message, 'error')
     }
   }
 
@@ -187,7 +190,7 @@ export default function Verification() {
       load(1, pagination.per_page)
       loadStats()
     } catch (e) {
-      alert('Delete failed: ' + e.message)
+      toast('Delete failed: ' + e.message, 'error')
     }
   }
 
@@ -277,7 +280,7 @@ export default function Verification() {
       load(1, pagination.per_page)
       loadStats()
     } catch (e) {
-      alert('Delete failed: ' + e.message)
+      toast('Delete failed: ' + e.message, 'error')
     }
   }
 

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
+import { useToast } from '../lib/toast'
 import { Activity, CheckCircle, Clock, ShieldAlert, Trash2 } from 'lucide-react'
 
 export default function ScanList() {
+  const { toast, confirm: toastConfirm } = useToast()
   const [scans, setScans] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -26,12 +28,13 @@ export default function ScanList() {
   }, [])
 
   async function deleteScan(id) {
-    if (!confirm('Delete this scan and all its matches?')) return
+    const ok = await toastConfirm('Delete this scan and all its matches?')
+    if (!ok) return
     try {
       await api.delete(`/scans/${id}`)
       load()
     } catch (e) {
-      alert(e.message)
+      toast(e.message, 'error')
     }
   }
 
