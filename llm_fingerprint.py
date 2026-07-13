@@ -16,11 +16,16 @@ LLM_PORTS = {
     1234:  ("lm_studio", 1),
     5000:  ("generic", 1),
     5001:  ("generic", 1),
-    7860:  ("generic", 1),
+    7860:  ("generic", 1),  # Also A1111 default
+    7861:  ("generic", 1),
+    7865:  ("generic", 1),  # Also Fooocus default
     8000:  ("generic", 1),
     8080:  ("generic", 1),
+    8188:  ("generic", 1),  # ComfyUI default
     8888:  ("generic", 1),
+    9090:  ("generic", 1),  # InvokeAI default
     3001:  ("generic", 1),
+    5002:  ("generic", 1),  # Piper TTS
 }
 
 DETECTION_METHODS = {
@@ -33,6 +38,15 @@ DETECTION_METHODS = {
     "anythingllm":    3,
     "openwebui":      3,
     "port_hint":      1,
+    # Image generation
+    "a1111_sdapi":    6,
+    "comfyui":        6,
+    "invokeai":       5,
+    "fooocus":        5,
+    # Audio / TTS
+    "coqui_tts":      5,
+    "bark_tts":       4,
+    "piper_tts":      4,
 }
 
 MAX_SCORE = sum(DETECTION_METHODS.values())
@@ -50,6 +64,22 @@ def _classify_service(methods_hit: list[str], details: dict) -> str:
         return "anythingllm"
     if "openwebui" in methods_hit:
         return "openwebui"
+    # Image generation services
+    if "a1111_sdapi" in methods_hit:
+        return "automatic1111"
+    if "comfyui" in methods_hit:
+        return "comfyui"
+    if "invokeai" in methods_hit:
+        return "invokeai"
+    if "fooocus" in methods_hit:
+        return "fooocus"
+    # Audio / TTS services
+    if "coqui_tts" in methods_hit:
+        return "coqui_tts"
+    if "bark_tts" in methods_hit:
+        return "bark_tts"
+    if "piper_tts" in methods_hit:
+        return "piper_tts"
     if "openai_models" in methods_hit:
         # Could be vLLM, LM Studio, LocalAI — check port hint
         hint = details.get("port_hint", "")
@@ -207,6 +237,98 @@ async def probe_host(
                                 result["details"]["openwebui_version"] = body["version"]
                 except (asyncio.TimeoutError, aiohttp.ClientError, json.JSONDecodeError, OSError):
                     pass
+
+            # ── Automatic1111 Stable Diffusion: GET /sdapi/v1/options ─────
+            try:
+                async with s.get(f"{base}/sdapi/v1/options", allow_redirects=False) as r:
+                    if r.status == 200:
+                        body = await r.json(content_type=None)
+                        if isinstance(body, dict) and ("sd_model_checkpoint" in body or "sd_checkpoint_hash" in body):
+                            result["score"] += DETECTION_METHODS["a1111_sdapi"]
+                            result["methods_hit"].append("a1111_sdapi")
+                            result["details"]["a1111_model"] = body.get("sd_model_checkpoint", "unknown")
+                            if not result["models"]:
+                                result["models"] = [body.get("sd_model_checkpoint", "sd-model")]
+            except (asyncio.TimeoutError, aiohttp.ClientError, json.JSONDecodeError, OSError):
+                pass
+
+            # ── ComfyUI: GET /system_stats ────────────────────────────────
+            try:
+                async with s.get(f"{base}/system_stats", allow_redirects=False) as r:
+                    if r.status == 200:
+                        body = await r.json(content_type=None)
+                        if isinstance(body, dict) and "system" in body:
+                            result["score"] += DETECTION_METHODS["comfyui"]
+                            result["methods_hit"].append("comfyui")
+                            sys_info = body.get("system", {})
+                            result["details"]["comfyui_version"] = sys_info.get("comfyui_version", "unknown")
+                            if not result["version"]:
+                                result["version"] = sys_info.get("comfyui_version")
+            except (asyncio.TimeoutError, aiohttp.ClientError, json.JSONDecodeError, OSError):
+                pass
+
+            # ── InvokeAI: GET /api/v1/app/version ─────────────────────────
+            try:
+                async with s.get(f"{base}/api/v1/app/version", allow_redirects=False) as r:
+                    if r.status == 200:
+                        body = await r.json(content_type=None)
+                        if isinstance(body, dict) and "version" in body:
+                            result["score"] += DETECTION_METHODS["invokeai"]
+                            result["methods_hit"].append("invokeai")
+                            result["details"]["invokeai_version"] = body["version"]
+                            if not result["version"]:
+                                result["version"] = body["version"]
+            except (asyncio.TimeoutError, aiohttp.ClientError, json.JSONDecodeError, OSError):
+                pass
+
+            # ── Fooocus: GET /settings ────────────────────────────────────
+            try:
+                async with s.get(f"{base}/settings", allow_redirects=False) as r:
+                    if r.status == 200:
+                        body = await r.json(content_type=None)
+                        if isinstance(body, dict) and any(k in body for k in ("default_model", "default_refiner", "default_lora")):
+                            result["score"] += DETECTION_METHODS["fooocus"]
+                            result["methods_hit"].append("fooocus")
+                            result["details"]["fooocus_model"] = body.get("default_model", "unknown")
+            except (asyncio.TimeoutError, aiohttp.ClientError, json.JSONDecodeError, OSError):
+                pass
+
+            # ── Coqui TTS: GET /api/v1/models ─────────────────────────────
+            try:
+                async with s.get(f"{base}/api/v1/models", allow_redirects=False) as r:
+                    if r.status == 200:
+                        body = await r.json(content_type=None)
+                        if isinstance(body, list) and len(body) > 0:
+                            result["score"] += DETECTION_METHODS["coqui_tts"]
+                            result["methods_hit"].append("coqui_tts")
+                            model_names = [m.get("name", m.get("id", "")) if isinstance(m, dict) else str(m) for m in body]
+                            result["details"]["coqui_models"] = model_names[:5]
+                            if not result["models"]:
+                                result["models"] = model_names[:5]
+            except (asyncio.TimeoutError, aiohttp.ClientError, json.JSONDecodeError, OSError):
+                pass
+
+            # ── Bark TTS: GET /bark/models or /v1/audio/speech ────────────
+            try:
+                async with s.get(f"{base}/bark/models", allow_redirects=False) as r:
+                    if r.status == 200:
+                        body = await r.json(content_type=None)
+                        if isinstance(body, dict) and "models" in body:
+                            result["score"] += DETECTION_METHODS["bark_tts"]
+                            result["methods_hit"].append("bark_tts")
+                            result["details"]["bark_models"] = body.get("models", [])
+            except (asyncio.TimeoutError, aiohttp.ClientError, json.JSONDecodeError, OSError):
+                pass
+
+            # ── Piper TTS: GET /api/tts?text=test&voice=en_US ─────────────
+            try:
+                async with s.get(f"{base}/api/tts?text=test&voice=en_US-lessac-medium", allow_redirects=False) as r:
+                    if r.status == 200 and "audio" in r.headers.get("content-type", ""):
+                        result["score"] += DETECTION_METHODS["piper_tts"]
+                        result["methods_hit"].append("piper_tts")
+                        result["details"]["piper_tts"] = True
+            except (asyncio.TimeoutError, aiohttp.ClientError, json.JSONDecodeError, OSError):
+                pass
 
     except Exception:
         pass

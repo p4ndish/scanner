@@ -168,6 +168,17 @@ export default function Verification() {
     }
   }
 
+  async function reverifyAll() {
+    if (!confirm('This will reset ALL verified matches (legitimate, honeypot, unreachable) back to pending and re-run verification with the improved logic. Continue?')) return
+    try {
+      const res = await api.post('/matches/reverify-all', {})
+      alert(`Re-verify all queued for ${res.total.toLocaleString()} matches`)
+      loadProgress()
+    } catch (e) {
+      alert('Failed to re-verify all: ' + e.message)
+    }
+  }
+
   async function deleteSelected() {
     if (selectedIds.size === 0) return
     try {
@@ -191,6 +202,13 @@ export default function Verification() {
     { value: 'anythingllm', label: 'AnythingLLM' },
     { value: 'openwebui', label: 'Open WebUI' },
     { value: 'opencode', label: 'OpenCode' },
+    { value: 'automatic1111', label: 'Automatic1111 (SD)' },
+    { value: 'comfyui', label: 'ComfyUI' },
+    { value: 'invokeai', label: 'InvokeAI' },
+    { value: 'fooocus', label: 'Fooocus' },
+    { value: 'coqui_tts', label: 'Coqui TTS' },
+    { value: 'bark_tts', label: 'Bark TTS' },
+    { value: 'piper_tts', label: 'Piper TTS' },
   ]
 
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
@@ -355,6 +373,14 @@ export default function Verification() {
         >
           <RefreshCw className="w-4 h-4 mr-2" />
           Re-verify Unreachable
+        </button>
+        <button
+          onClick={reverifyAll}
+          disabled={isRunning}
+          className="inline-flex items-center px-3 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed border border-violet-500 rounded-lg text-sm font-medium transition-colors"
+        >
+          <RefreshCw className="w-4 h-4 mr-2" />
+          Re-verify All
         </button>
         <button
           onClick={() => setBulkDeleteOpen(true)}

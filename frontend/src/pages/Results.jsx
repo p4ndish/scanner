@@ -13,6 +13,13 @@ const SERVICE_COLORS = {
   anythingllm: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
   openwebui: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30',
   opencode: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
+  automatic1111: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
+  comfyui: 'bg-teal-500/10 text-teal-400 border-teal-500/30',
+  invokeai: 'bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/30',
+  fooocus: 'bg-lime-500/10 text-lime-400 border-lime-500/30',
+  coqui_tts: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30',
+  bark_tts: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
+  piper_tts: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
   generic: 'bg-slate-700 text-slate-400 border-slate-600',
   unknown: 'bg-slate-800 text-slate-500 border-slate-700',
 }
@@ -28,6 +35,13 @@ const SERVICE_OPTIONS = [
   { value: 'anythingllm', label: 'AnythingLLM' },
   { value: 'openwebui', label: 'Open WebUI' },
   { value: 'opencode', label: 'OpenCode' },
+  { value: 'automatic1111', label: 'Automatic1111 (SD)' },
+  { value: 'comfyui', label: 'ComfyUI' },
+  { value: 'invokeai', label: 'InvokeAI' },
+  { value: 'fooocus', label: 'Fooocus' },
+  { value: 'coqui_tts', label: 'Coqui TTS' },
+  { value: 'bark_tts', label: 'Bark TTS' },
+  { value: 'piper_tts', label: 'Piper TTS' },
 ]
 
 const PER_PAGE_OPTIONS = [10, 25, 50, 100]

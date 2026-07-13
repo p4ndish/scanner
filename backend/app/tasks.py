@@ -379,56 +379,16 @@ def run_scan_task(self, scan_id: int):
 
 # ─── Match Verification Task ───
 
-from backend.app.llm_probe import probe_prompt, _tcp_connect
+from backend.app.llm_probe import verify_endpoint
 
 
 def _verify_single_match(match_dict):
     """Verify a single match. Returns (match_id, status, details)."""
-    from types import SimpleNamespace
-    match = SimpleNamespace(**match_dict)
-
-    base_url = f"{match.scheme}://{match.ip}:{match.port}"
-
-    # Fast TCP connect check first — skip dead hosts in ~1s instead of 15s
-    if not _tcp_connect(match.ip, match.port, timeout=1.0):
-        return match.id, "unreachable", {
-            "canary_pass": False,
-            "math_pass": False,
-            "consistency_pass": False,
-            "responses": [{"check": "tcp", "error": "connection refused / timeout"}],
-        }
-
-    # Check 1: Canary token (3s timeout for bulk verification)
-    resp1 = probe_prompt(base_url, "reply only H3llo", timeout=3)
-    canary_pass = resp1 is not None and "H3llo" in resp1
-
-    # Check 2: Math question
-    resp2 = probe_prompt(base_url, "What is 7 + 5?", timeout=3)
-    math_pass = resp2 is not None and "12" in resp2
-
-    # Check 3: Consistency (same prompt again)
-    resp3 = probe_prompt(base_url, "reply only H3llo", timeout=3)
-    consistency_pass = resp3 is not None and resp1 != resp3
-
-    if resp1 is None and resp2 is None and resp3 is None:
-        status = "unreachable"
-    elif canary_pass and math_pass and consistency_pass:
-        status = "legitimate"
-    else:
-        status = "honeypot"
-
-    details = {
-        "canary_pass": canary_pass,
-        "math_pass": math_pass,
-        "consistency_pass": consistency_pass,
-        "responses": [
-            {"check": "canary", "prompt": "reply only H3llo", "response": resp1},
-            {"check": "math", "prompt": "What is 7 + 5?", "response": resp2},
-            {"check": "consistency", "prompt": "reply only H3llo", "response": resp3},
-        ],
-    }
-
-    return match.id, status, details
+    match = match_dict
+    status, details = verify_endpoint(
+        match["ip"], match["port"], match["scheme"], timeout=5
+    )
+    return match["id"], status, details
 
 
 @celery_app.task(bind=True, max_retries=0)
@@ -553,6 +513,7 @@ def verify_matches_task(self, user_id: int, filters: dict = None):
                                 "verified_status": st,
                                 "verified_at": datetime.utcnow(),
                                 "verification_details": det,
+                                "model_type": det.get("model_type"),
                             })
                         db.commit()
                         batch_updates = []
@@ -565,6 +526,7 @@ def verify_matches_task(self, user_id: int, filters: dict = None):
                         "verified_status": st,
                         "verified_at": datetime.utcnow(),
                         "verification_details": det,
+                        "model_type": det.get("model_type"),
                     })
                 db.commit()
                 update_progress()

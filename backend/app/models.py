@@ -68,6 +68,7 @@ class Match(Base):
     verified_status = Column(String(16), default="pending", nullable=False)
     verified_at = Column(DateTime, nullable=True)
     verification_details = Column(JSON, default=dict)
+    model_type = Column(String(16), nullable=True)
 
     scan_job = relationship("ScanJob", back_populates="matches")
 

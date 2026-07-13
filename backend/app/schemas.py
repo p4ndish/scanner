@@ -118,6 +118,7 @@ class MatchOut(BaseModel):
     verified_status: str = "pending"
     verified_at: Optional[datetime] = None
     verification_details: Optional[dict] = None
+    model_type: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -319,6 +319,63 @@ def reverify_matches(
     return {"queued": True, "total": total, "task_id": task.id}
 
 
+@router.post("/reverify-all")
+def reverify_all_matches(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Reset ALL verified matches back to pending and re-run verification."""
+    from backend.app.tasks import verify_matches_task
+    from sqlalchemy import update
+    import redis
+    import json
+    import os
+
+    # Count all matches for this user
+    total = (
+        db.query(Match.id)
+        .join(ScanJob)
+        .filter(ScanJob.user_id == current_user.id)
+        .count()
+    )
+    if total == 0:
+        raise HTTPException(status_code=400, detail="No matches to verify")
+
+    # Reset everything to pending
+    subq = (
+        db.query(Match.id)
+        .join(ScanJob)
+        .filter(ScanJob.user_id == current_user.id)
+        .subquery()
+    )
+    stmt = update(Match).where(Match.id.in_(subq)).values(
+        verified_status="pending",
+        verified_at=None,
+        verification_details={},
+    )
+    db.execute(stmt)
+    db.commit()
+
+    # Set progress in Redis
+    r = redis.from_url(os.getenv("REDIS_URL", "redis://redis:6379/0"))
+    r.set(
+        f"verify:{current_user.id}:progress",
+        json.dumps({
+            "total": total,
+            "done": 0,
+            "legitimate": 0,
+            "honeypot": 0,
+            "unreachable": 0,
+            "state": "queued",
+        }),
+        ex=7200,
+    )
+
+    task = verify_matches_task.delay(user_id=current_user.id, filters={})
+
+    return {"queued": True, "total": total, "task_id": task.id}
+
+
 class BulkDeletePayload(BaseModel):
     match_ids: Optional[List[int]] = None
     provider: Optional[str] = None
