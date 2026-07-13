@@ -3,6 +3,7 @@
 Different LLM services expose different API paths. This module tries the
 most common ones in order and returns the first successful response.
 """
+import socket
 import requests
 
 
@@ -11,6 +12,18 @@ def _safe_json(resp):
         return resp.json()
     except Exception:
         return {}
+
+
+def _tcp_connect(ip: str, port: int, timeout: float = 1.0) -> bool:
+    """Fast TCP connect check. Returns True if port is open."""
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(timeout)
+        result = sock.connect_ex((ip, port))
+        sock.close()
+        return result == 0
+    except Exception:
+        return False
 
 
 def probe_chat_completions(base_url: str, prompt: str, timeout: float = 10, model: str = ""):
@@ -77,7 +90,7 @@ def probe_ollama_generate(base_url: str, prompt: str, timeout: float = 10, model
     return None
 
 
-def probe_kobold_generate(base_url: str, prompt: str, timeout: float = 10):
+def probe_kobold_generate(base_url: str, prompt: str, timeout: float = 10, model: str = ""):
     """Try Kobold /api/v1/generate"""
     try:
         r = requests.post(
@@ -122,13 +135,13 @@ PROBERS = [
 ]
 
 
-def probe_prompt(base_url: str, prompt: str, timeout: float = 10, model: str = ""):
+def probe_prompt(base_url: str, prompt: str, timeout: float = 5, model: str = ""):
     """Try all known prompt endpoints and return the first successful response.
 
     Args:
         base_url: e.g. "http://1.2.3.4:11434"
         prompt: the text prompt to send
-        timeout: HTTP timeout in seconds
+        timeout: HTTP timeout in seconds (default 5s for verification tasks)
         model: optional model name (empty string works for most servers)
 
     Returns:
