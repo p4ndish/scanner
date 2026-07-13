@@ -13,6 +13,10 @@ import {
   WifiOff,
   Filter,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-react'
 
 const STATUS_COLORS = {
@@ -640,11 +644,19 @@ export default function Verification() {
             </div>
             <div className="flex items-center gap-1">
               <button
+                onClick={() => goToPage(1)}
+                disabled={pagination.page <= 1}
+                className="p-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-slate-200 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                title="First page"
+              >
+                <ChevronsLeft className="w-4 h-4" />
+              </button>
+              <button
                 onClick={() => goToPage(pagination.page - 1)}
                 disabled={pagination.page <= 1}
                 className="p-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-slate-200 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
-                <ChevronDown className="w-4 h-4 rotate-90" />
+                <ChevronLeft className="w-4 h-4" />
               </button>
               {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
                 let start = Math.max(1, pagination.page - 2)
@@ -671,8 +683,31 @@ export default function Verification() {
                 disabled={pagination.page >= pagination.pages}
                 className="p-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-slate-200 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
-                <ChevronDown className="w-4 h-4 -rotate-90" />
+                <ChevronRight className="w-4 h-4" />
               </button>
+              <button
+                onClick={() => goToPage(pagination.pages)}
+                disabled={pagination.page >= pagination.pages}
+                className="p-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-slate-200 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                title="Last page"
+              >
+                <ChevronsRight className="w-4 h-4" />
+              </button>
+              <span className="text-xs text-slate-500 ml-2">Go to:</span>
+              <input
+                type="number"
+                min={1}
+                max={pagination.pages}
+                placeholder={String(pagination.page)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const p = parseInt(e.target.value)
+                    if (p >= 1 && p <= pagination.pages) goToPage(p)
+                    e.target.value = ''
+                  }
+                }}
+                className="w-16 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-center"
+              />
             </div>
           </div>
         )}
