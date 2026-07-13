@@ -198,7 +198,7 @@ export default function Results() {
     try {
       const res = await api.post(`/matches/${matchId}/test`, {
         model: state.selectedModel,
-        prompt: state.testPrompt || 'hi',
+        prompt: state.testPrompt || 'reply with h3ll0',
         max_tokens: 100,
       })
       setRowTestState((prev) => ({
@@ -734,7 +734,7 @@ export default function Results() {
                               <div className="flex-1">
                                 <label className="block text-sm font-medium text-slate-300 mb-2">Prompt</label>
                                 <textarea
-                                  value={tState.testPrompt || 'hi'}
+                                  value={tState.testPrompt || 'reply with h3ll0'}
                                   onChange={(e) => updateRowState(m.id, { testPrompt: e.target.value })}
                                   onClick={(e) => e.stopPropagation()}
                                   rows={2}
