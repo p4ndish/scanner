@@ -7,6 +7,9 @@ const ALL_PROVIDERS = [
   'aws', 'google_cloud', 'microsoft_azure', 'oracle_cloud', 'digitalocean',
   'akamai_linode', 'vultr', 'cloudflare', 'ibm_cloud',
   'alibaba_cloud', 'tencent_cloud', 'huawei_cloud', 'baidu_cloud',
+  'ucloud', 'kingsoft_cloud', 'volcengine', 'jd_cloud',
+  'china_telecom_cloud', 'china_unicom_cloud', 'china_mobile_cloud',
+  'naver_cloud', 'sakura_internet', 'kt_cloud',
   'ovh_cloud', 'hetzner', 'scaleway', 'ionos',
 ]
 
