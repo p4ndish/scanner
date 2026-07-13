@@ -193,7 +193,7 @@ export default function Results() {
 
     setRowTestState((prev) => ({
       ...prev,
-      [matchId]: { ...prev[matchId], testLoading: true, testResponse: null },
+      [matchId]: { ...prev[matchId], testLoading: true, testResponse: null, testError: null },
     }))
     try {
       const res = await api.post(`/matches/${matchId}/test`, {
@@ -208,9 +208,8 @@ export default function Results() {
     } catch (e) {
       setRowTestState((prev) => ({
         ...prev,
-        [matchId]: { ...prev[matchId], testLoading: false },
+        [matchId]: { ...prev[matchId], testLoading: false, testError: e.message },
       }))
-      alert('Test failed: ' + e.message)
     }
   }
 
@@ -780,6 +779,16 @@ export default function Results() {
                                     Prompt tokens: {tState.testResponse.prompt_tokens} · Completion: {tState.testResponse.completion_tokens}
                                   </div>
                                 )}
+                              </div>
+                            )}
+
+                            {/* Error */}
+                            {tState.testError && (
+                              <div className="bg-rose-500/10 border border-rose-500/30 rounded-lg p-4">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-xs font-medium text-rose-400">Test Failed</span>
+                                </div>
+                                <p className="text-sm text-rose-300">{tState.testError}</p>
                               </div>
                             )}
                           </div>
