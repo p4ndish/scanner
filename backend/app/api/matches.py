@@ -467,7 +467,7 @@ def test_prompt(
 ):
     """Send a test prompt to the LLM endpoint and return the response."""
     import requests
-    from backend.app.llm_probe import probe_prompt
+    from backend.app.llm_probe import probe_with_model
 
     match = (
         db.query(Match)
@@ -585,7 +585,7 @@ def test_prompt(
         pass
 
     # ── Final fallback: use shared probe (shouldn't reach here normally) ──
-    resp = probe_prompt(base_url, prompt, timeout=15, model=model)
+    resp = probe_with_model(base_url, prompt, model, timeout=15)
     if resp is not None:
         return {"response": resp, "endpoint": "fallback"}
 
