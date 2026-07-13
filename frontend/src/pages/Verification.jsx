@@ -180,10 +180,82 @@ export default function Verification() {
     }
   }
 
-  async function deleteAllHoneypots() {
+  const SERVICE_OPTIONS = [
+    { value: '', label: 'All services' },
+    { value: 'ollama', label: 'Ollama' },
+    { value: 'vllm_compat', label: 'vLLM / OpenAI-compat' },
+    { value: 'llamacpp', label: 'llama.cpp' },
+    { value: 'kobold', label: 'Kobold' },
+    { value: 'textgen', label: 'TextGen' },
+    { value: 'lm_studio', label: 'LM Studio' },
+    { value: 'anythingllm', label: 'AnythingLLM' },
+    { value: 'openwebui', label: 'Open WebUI' },
+    { value: 'opencode', label: 'OpenCode' },
+  ]
+
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
+  const [bulkDeleteFilters, setBulkDeleteFilters] = useState({
+    scope: 'all', // all | provider | service | verified_status | selected
+    provider: '',
+    service: '',
+    verified_status: '',
+  })
+  const [bulkDeleteCount, setBulkDeleteCount] = useState(null)
+
+  async function previewBulkDelete() {
+    const payload = {}
+    if (bulkDeleteFilters.scope === 'selected') {
+      if (selectedIds.size === 0) return
+      payload.match_ids = Array.from(selectedIds)
+    } else if (bulkDeleteFilters.scope === 'provider') {
+      if (!bulkDeleteFilters.provider) return
+      payload.provider = bulkDeleteFilters.provider
+    } else if (bulkDeleteFilters.scope === 'service') {
+      if (!bulkDeleteFilters.service) return
+      payload.service = bulkDeleteFilters.service
+    } else if (bulkDeleteFilters.scope === 'verified_status') {
+      if (!bulkDeleteFilters.verified_status) return
+      payload.verified_status = bulkDeleteFilters.verified_status
+    }
+    // 'all' scope sends empty payload (deletes everything)
+
     try {
-      await api.delete('/matches/bulk', { verified_status: 'honeypot' })
-      setDeleteConfirm(null)
+      // Count by running a filtered list query with per_page=1
+      const params = new URLSearchParams()
+      if (payload.provider) params.set('provider', payload.provider)
+      if (payload.service) params.set('service', payload.service)
+      if (payload.verified_status) params.set('verified_status', payload.verified_status)
+      params.set('per_page', '1')
+      const res = await api.get(`/matches?${params.toString()}`)
+      setBulkDeleteCount(res.total)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  useEffect(() => {
+    if (bulkDeleteOpen) {
+      previewBulkDelete()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bulkDeleteOpen, bulkDeleteFilters, selectedIds.size])
+
+  async function executeBulkDelete() {
+    const payload = {}
+    if (bulkDeleteFilters.scope === 'selected') {
+      payload.match_ids = Array.from(selectedIds)
+    } else if (bulkDeleteFilters.scope === 'provider') {
+      payload.provider = bulkDeleteFilters.provider
+    } else if (bulkDeleteFilters.scope === 'service') {
+      payload.service = bulkDeleteFilters.service
+    } else if (bulkDeleteFilters.scope === 'verified_status') {
+      payload.verified_status = bulkDeleteFilters.verified_status
+    }
+
+    try {
+      await api.delete('/matches/bulk', payload)
+      setBulkDeleteOpen(false)
+      setSelectedIds(new Set())
       load(1, pagination.per_page)
       loadStats()
     } catch (e) {
@@ -285,49 +357,106 @@ export default function Verification() {
           Re-verify Unreachable
         </button>
         <button
-          onClick={() => setDeleteConfirm('honeypots')}
-          disabled={honeypotCount === 0}
-          className="inline-flex items-center px-3 py-2 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 disabled:cursor-not-allowed border border-rose-500 rounded-lg text-sm font-medium transition-colors"
+          onClick={() => setBulkDeleteOpen(true)}
+          className="inline-flex items-center px-3 py-2 bg-rose-600 hover:bg-rose-500 border border-rose-500 rounded-lg text-sm font-medium transition-colors"
         >
           <Trash2 className="w-4 h-4 mr-2" />
-          Delete All Honeypots
+          Bulk Delete
         </button>
-        {selectedIds.size > 0 && (
-          <button
-            onClick={() => setDeleteConfirm('selected')}
-            className="inline-flex items-center px-3 py-2 bg-rose-600 hover:bg-rose-500 border border-rose-500 rounded-lg text-sm font-medium transition-colors"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Delete Selected ({selectedIds.size})
-          </button>
-        )}
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {deleteConfirm && (
+      {/* Bulk Delete Dialog */}
+      {bulkDeleteOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 max-w-md w-full mx-4">
-            <div className="flex items-center gap-3 mb-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 max-w-lg w-full mx-4 space-y-4">
+            <div className="flex items-center gap-3">
               <AlertTriangle className="w-6 h-6 text-amber-400" />
-              <h3 className="text-lg font-bold">Confirm Deletion</h3>
+              <h3 className="text-lg font-bold">Bulk Delete</h3>
             </div>
-            <p className="text-slate-300 mb-6">
-              {deleteConfirm === 'honeypots'
-                ? `Delete all ${honeypotCount.toLocaleString()} honeypot matches? This cannot be undone.`
-                : `Delete ${selectedIds.size} selected matches? This cannot be undone.`}
+            <p className="text-sm text-slate-400">
+              Choose what to delete. This action cannot be undone.
             </p>
-            <div className="flex gap-3 justify-end">
+
+            {/* Scope selector */}
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-slate-300">Delete scope</label>
+              <select
+                value={bulkDeleteFilters.scope}
+                onChange={(e) => setBulkDeleteFilters((f) => ({ ...f, scope: e.target.value }))}
+                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+              >
+                <option value="all">All matches</option>
+                <option value="provider">By provider</option>
+                <option value="service">By service</option>
+                <option value="verified_status">By verified status</option>
+                {selectedIds.size > 0 && (
+                  <option value="selected">Selected rows ({selectedIds.size})</option>
+                )}
+              </select>
+
+              {bulkDeleteFilters.scope === 'provider' && (
+                <select
+                  value={bulkDeleteFilters.provider}
+                  onChange={(e) => setBulkDeleteFilters((f) => ({ ...f, provider: e.target.value }))}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                >
+                  <option value="">Select provider...</option>
+                  {providers.map((p) => (
+                    <option key={p} value={p === 'unknown' ? '' : p}>{p}</option>
+                  ))}
+                </select>
+              )}
+
+              {bulkDeleteFilters.scope === 'service' && (
+                <select
+                  value={bulkDeleteFilters.service}
+                  onChange={(e) => setBulkDeleteFilters((f) => ({ ...f, service: e.target.value }))}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                >
+                  <option value="">Select service...</option>
+                  {SERVICE_OPTIONS.filter((o) => o.value).map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              )}
+
+              {bulkDeleteFilters.scope === 'verified_status' && (
+                <select
+                  value={bulkDeleteFilters.verified_status}
+                  onChange={(e) => setBulkDeleteFilters((f) => ({ ...f, verified_status: e.target.value }))}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                >
+                  <option value="">Select status...</option>
+                  <option value="pending">Pending</option>
+                  <option value="legitimate">Legitimate</option>
+                  <option value="honeypot">Honeypot</option>
+                  <option value="unreachable">Unreachable</option>
+                </select>
+              )}
+            </div>
+
+            {/* Count preview */}
+            {bulkDeleteCount !== null && (
+              <div className="bg-rose-500/10 border border-rose-500/30 rounded-lg p-3">
+                <p className="text-sm text-rose-400 font-medium">
+                  {bulkDeleteCount.toLocaleString()} matches will be deleted
+                </p>
+              </div>
+            )}
+
+            <div className="flex gap-3 justify-end pt-2">
               <button
-                onClick={() => setDeleteConfirm(null)}
+                onClick={() => setBulkDeleteOpen(false)}
                 className="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-sm font-medium transition-colors"
               >
                 Cancel
               </button>
               <button
-                onClick={deleteConfirm === 'honeypots' ? deleteAllHoneypots : deleteSelected}
-                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-sm font-medium transition-colors"
+                onClick={executeBulkDelete}
+                disabled={bulkDeleteCount === 0 || bulkDeleteCount === null}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
               >
-                Delete
+                Delete {bulkDeleteCount !== null ? bulkDeleteCount.toLocaleString() : ''} Matches
               </button>
             </div>
           </div>
