@@ -226,3 +226,56 @@ def probe_models(base_url: str, timeout: float = 5):
         if result is not None:
             return result
     return []
+
+
+# ─── Shared verification logic ───
+
+def verify_endpoint(ip: str, port: int, scheme: str = "http", timeout: float = 3):
+    """Run 3-check honeypot detection on an LLM endpoint.
+
+    Returns:
+        (status, details) where status is "legitimate" | "honeypot" | "unreachable"
+        and details is a dict with check results.
+    """
+    base_url = f"{scheme}://{ip}:{port}"
+
+    # Fast TCP connect check first
+    if not _tcp_connect(ip, port, timeout=1.0):
+        return "unreachable", {
+            "canary_pass": False,
+            "math_pass": False,
+            "consistency_pass": False,
+            "responses": [{"check": "tcp", "error": "connection refused / timeout"}],
+        }
+
+    # Check 1: Canary token
+    resp1 = probe_prompt(base_url, "reply only H3llo", timeout=timeout)
+    canary_pass = resp1 is not None and "H3llo" in resp1
+
+    # Check 2: Math question
+    resp2 = probe_prompt(base_url, "What is 7 + 5?", timeout=timeout)
+    math_pass = resp2 is not None and "12" in resp2
+
+    # Check 3: Consistency (same prompt again)
+    resp3 = probe_prompt(base_url, "reply only H3llo", timeout=timeout)
+    consistency_pass = resp3 is not None and resp1 != resp3
+
+    if resp1 is None and resp2 is None and resp3 is None:
+        status = "unreachable"
+    elif canary_pass and math_pass and consistency_pass:
+        status = "legitimate"
+    else:
+        status = "honeypot"
+
+    details = {
+        "canary_pass": canary_pass,
+        "math_pass": math_pass,
+        "consistency_pass": consistency_pass,
+        "responses": [
+            {"check": "canary", "prompt": "reply only H3llo", "response": resp1},
+            {"check": "math", "prompt": "What is 7 + 5?", "response": resp2},
+            {"check": "consistency", "prompt": "reply only H3llo", "response": resp3},
+        ],
+    }
+
+    return status, details
