@@ -36,6 +36,7 @@ export default function Results() {
   const [matches, setMatches] = useState([])
   const [pagination, setPagination] = useState({ total: 0, page: 1, per_page: 25, pages: 0 })
   const [filters, setFilters] = useState({ provider: '', service: '', min_score: '', max_score: '', model: '', llm_mode: '', verified_status: '' })
+  const [providers, setProviders] = useState([])
   const [loading, setLoading] = useState(true)
   const [importing, setImporting] = useState(false)
   const [importStatus, setImportStatus] = useState('')
@@ -48,6 +49,15 @@ export default function Results() {
   // Per-row test state: { [matchId]: { models, selectedModel, testPrompt, testResponse, testLoading, modelLoading } }
   const [rowTestState, setRowTestState] = useState({})
 
+  async function loadProviders() {
+    try {
+      const res = await api.get('/matches/providers')
+      setProviders(res.providers || [])
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
   async function load(page = pagination.page, perPage = pagination.per_page) {
     setLoading(true)
     try {
@@ -58,19 +68,11 @@ export default function Results() {
       if (filters.max_score) params.set('max_score', filters.max_score)
       if (filters.llm_mode !== '') params.set('llm_mode', filters.llm_mode)
       if (filters.verified_status) params.set('verified_status', filters.verified_status)
+      if (filters.model.trim()) params.set('model', filters.model.trim())
       params.set('page', String(page))
       params.set('per_page', String(perPage))
       const res = await api.get(`/matches?${params.toString()}`)
-      let items = res.items || []
-      if (filters.model.trim()) {
-        const q = filters.model.toLowerCase()
-        items = items.filter((m) => {
-          const details = m.details_json || {}
-          const text = JSON.stringify(details).toLowerCase()
-          return text.includes(q)
-        })
-      }
-      setMatches(items)
+      setMatches(res.items || [])
       setPagination({
         total: res.total,
         page: res.page,
@@ -83,6 +85,11 @@ export default function Results() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    loadProviders()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     load(1, pagination.per_page)
@@ -317,12 +324,16 @@ export default function Results() {
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
         <div className="flex flex-wrap gap-3 items-center">
           <Filter className="w-4 h-4 text-slate-500 shrink-0" />
-          <input
-            type="text" placeholder="Provider..."
+          <select
             value={filters.provider}
             onChange={(e) => setFilters((f) => ({ ...f, provider: e.target.value }))}
             className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-          />
+          >
+            <option value="">All providers</option>
+            {providers.map((p) => (
+              <option key={p} value={p === 'unknown' ? '' : p}>{p}</option>
+            ))}
+          </select>
           <select
             value={filters.service}
             onChange={(e) => setFilters((f) => ({ ...f, service: e.target.value }))}

@@ -2,6 +2,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from pydantic import BaseModel
+from sqlalchemy import func, String
 from sqlalchemy.orm import Session
 
 from backend.app.auth import get_current_active_user
@@ -22,6 +23,7 @@ def list_matches(
     max_score: Optional[int] = Query(None),
     llm_mode: Optional[bool] = Query(None),
     verified_status: Optional[str] = Query(None),
+    model: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     per_page: int = Query(25, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -43,6 +45,11 @@ def list_matches(
         q = q.filter(ScanJob.llm_mode == llm_mode)
     if verified_status:
         q = q.filter(Match.verified_status == verified_status)
+    if model and model.strip():
+        model_lower = model.strip().lower()
+        q = q.filter(
+            func.lower(Match.details_json.cast(String)).like(f"%{model_lower}%")
+        )
 
     total = q.count()
     items = (
@@ -103,6 +110,24 @@ def match_stats(
         },
         "by_verified": {status: c for status, c in verify_q},
     }
+
+
+@router.get("/providers")
+def list_providers(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Return distinct cloud providers for the current user's matches."""
+    rows = (
+        db.query(Match.provider)
+        .join(ScanJob)
+        .filter(ScanJob.user_id == current_user.id)
+        .distinct()
+        .order_by(Match.provider)
+        .all()
+    )
+    providers = [p or "unknown" for (p,) in rows]
+    return {"providers": providers}
 
 
 @router.post("/import")

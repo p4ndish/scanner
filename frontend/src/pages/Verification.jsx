@@ -34,6 +34,7 @@ export default function Verification() {
   const [matches, setMatches] = useState([])
   const [pagination, setPagination] = useState({ total: 0, page: 1, per_page: 25, pages: 0 })
   const [filters, setFilters] = useState({ provider: '', service: '', verified_status: '' })
+  const [providers, setProviders] = useState([])
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({ by_verified: {} })
   const [progress, setProgress] = useState(null)
@@ -70,6 +71,15 @@ export default function Verification() {
     }
   }, [filters, pagination.page, pagination.per_page])
 
+  const loadProviders = useCallback(async () => {
+    try {
+      const res = await api.get('/matches/providers')
+      setProviders(res.providers || [])
+    } catch (e) {
+      console.error(e)
+    }
+  }, [])
+
   const loadStats = useCallback(async () => {
     try {
       const res = await api.get('/matches/stats')
@@ -86,6 +96,11 @@ export default function Verification() {
     } catch (e) {
       console.error(e)
     }
+  }, [])
+
+  useEffect(() => {
+    loadProviders()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -323,12 +338,16 @@ export default function Verification() {
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
         <div className="flex flex-wrap gap-3 items-center">
           <Filter className="w-4 h-4 text-slate-500 shrink-0" />
-          <input
-            type="text" placeholder="Provider..."
+          <select
             value={filters.provider}
             onChange={(e) => setFilters((f) => ({ ...f, provider: e.target.value }))}
             className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-          />
+          >
+            <option value="">All providers</option>
+            {providers.map((p) => (
+              <option key={p} value={p === 'unknown' ? '' : p}>{p}</option>
+            ))}
+          </select>
           <input
             type="text" placeholder="Service..."
             value={filters.service}
