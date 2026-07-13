@@ -77,13 +77,21 @@ def discover_models(base_url: str, timeout: float = 5) -> tuple[list[str], str]:
 
     Returns: (model_ids, source) where source is the endpoint path that worked.
     """
+    def _clean(val):
+        """Ensure model ID is a non-empty string."""
+        if val is None:
+            return ""
+        if isinstance(val, (dict, list)):
+            return ""
+        return str(val).strip()
+
     # Try 1: OpenAI /v1/models
     try:
         r = requests.get(f"{base_url}/v1/models", timeout=timeout)
         if r.status_code == 200:
             data = _safe_json(r)
             if isinstance(data, dict) and "data" in data:
-                ids = [m.get("id", "") for m in data["data"] if isinstance(m, dict)]
+                ids = [_clean(m.get("id", "")) for m in data["data"] if isinstance(m, dict)]
                 ids = [i for i in ids if i]
                 if ids:
                     return ids, "/v1/models"
@@ -96,7 +104,7 @@ def discover_models(base_url: str, timeout: float = 5) -> tuple[list[str], str]:
         if r.status_code == 200:
             data = _safe_json(r)
             if isinstance(data, dict) and "models" in data:
-                ids = [m.get("name", m.get("model", "")) for m in data["models"] if isinstance(m, dict)]
+                ids = [_clean(m.get("name", m.get("model", ""))) for m in data["models"] if isinstance(m, dict)]
                 ids = [i for i in ids if i]
                 if ids:
                     return ids, "/api/tags"
@@ -109,7 +117,9 @@ def discover_models(base_url: str, timeout: float = 5) -> tuple[list[str], str]:
         if r.status_code == 200:
             data = _safe_json(r)
             if isinstance(data, dict) and "result" in data:
-                return [data["result"]], "/api/v1/model"
+                mid = _clean(data["result"])
+                if mid:
+                    return [mid], "/api/v1/model"
     except Exception:
         pass
 
@@ -294,6 +304,36 @@ def verify_endpoint(ip: str, port: int, scheme: str = "http", timeout: float = 5
 
     # 3. Classify models and pick a chat model
     model_ids = [mid for mid in model_ids if mid]
+    if not model_ids:
+        # Discovery returned only empty/null IDs — treat as no models
+        resp1 = probe_with_model(base_url, "reply only H3llo", "", timeout=timeout)
+        if resp1 is None:
+            return "unreachable", {
+                "error": "no_valid_models_and_no_response",
+                "models_found": [],
+                "model_type": None,
+                "responses": [],
+            }
+        canary_pass = bool(str(resp1).strip())
+        resp2 = probe_with_model(base_url, "What is 7 + 5?", "", timeout=timeout)
+        math_pass = resp2 is not None and "12" in str(resp2)
+        resp3 = probe_with_model(base_url, "reply only H3llo", "", timeout=timeout)
+        consistency_pass = resp3 is not None and resp1 != resp3
+        status = "legitimate" if canary_pass and math_pass else "honeypot"
+        return status, {
+            "canary_pass": canary_pass,
+            "math_pass": math_pass,
+            "consistency_pass": consistency_pass,
+            "models_found": [],
+            "model_type": None,
+            "model_used": "",
+            "responses": [
+                {"check": "canary", "prompt": "reply only H3llo", "response": resp1},
+                {"check": "math", "prompt": "What is 7 + 5?", "response": resp2},
+                {"check": "consistency", "prompt": "reply only H3llo", "response": resp3},
+            ],
+        }
+
     model_types = {mid: _classify_model_type(mid) for mid in model_ids}
     chat_models = [mid for mid, t in model_types.items() if t == "chat"]
 
