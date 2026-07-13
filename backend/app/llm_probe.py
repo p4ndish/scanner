@@ -33,7 +33,9 @@ VIDEO_PATTERNS = [
 
 def _classify_model_type(model_id: str) -> str:
     """Classify a model ID by its type based on name patterns."""
-    mid = model_id.lower()
+    if not model_id:
+        return "chat"
+    mid = str(model_id).lower()
     for p in EMBEDDING_PATTERNS:
         if re.search(p, mid):
             return "embeddings"
@@ -291,6 +293,7 @@ def verify_endpoint(ip: str, port: int, scheme: str = "http", timeout: float = 5
         }
 
     # 3. Classify models and pick a chat model
+    model_ids = [mid for mid in model_ids if mid]
     model_types = {mid: _classify_model_type(mid) for mid in model_ids}
     chat_models = [mid for mid, t in model_types.items() if t == "chat"]
 
