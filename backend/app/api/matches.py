@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from pydantic import BaseModel
-from sqlalchemy import func, String
+from sqlalchemy import func, String, cast
 from sqlalchemy.orm import Session
 
 from backend.app.auth import get_current_active_user
@@ -66,13 +66,13 @@ def list_matches(
             q = q.filter(Match.ip == ip_val)
     if canary and canary in ("pass", "fail"):
         expected = "true" if canary == "pass" else "false"
-        q = q.filter(Match.verification_details["canary_pass"].astext == expected)
+        q = q.filter(cast(Match.verification_details["canary_pass"], String) == expected)
     if math and math in ("pass", "fail"):
         expected = "true" if math == "pass" else "false"
-        q = q.filter(Match.verification_details["math_pass"].astext == expected)
+        q = q.filter(cast(Match.verification_details["math_pass"], String) == expected)
     if consistency and consistency in ("pass", "fail"):
         expected = "true" if consistency == "pass" else "false"
-        q = q.filter(Match.verification_details["consistency_pass"].astext == expected)
+        q = q.filter(cast(Match.verification_details["consistency_pass"], String) == expected)
 
     total = q.count()
     items = (
