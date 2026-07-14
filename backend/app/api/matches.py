@@ -24,6 +24,10 @@ def list_matches(
     llm_mode: Optional[bool] = Query(None),
     verified_status: Optional[str] = Query(None),
     model: Optional[str] = Query(None),
+    ip: Optional[str] = Query(None),
+    canary: Optional[str] = Query(None),
+    math: Optional[str] = Query(None),
+    consistency: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     per_page: int = Query(25, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -50,6 +54,25 @@ def list_matches(
         q = q.filter(
             func.lower(Match.details_json.cast(String)).like(f"%{model_lower}%")
         )
+    if ip and ip.strip():
+        ip_val = ip.strip()
+        if ':' in ip_val:
+            ip_addr, _, ip_port = ip_val.partition(':')
+            try:
+                q = q.filter(Match.ip == ip_addr, Match.port == int(ip_port))
+            except ValueError:
+                q = q.filter(Match.ip == ip_addr)
+        else:
+            q = q.filter(Match.ip == ip_val)
+    if canary and canary in ("pass", "fail"):
+        expected = "true" if canary == "pass" else "false"
+        q = q.filter(Match.verification_details["canary_pass"].astext == expected)
+    if math and math in ("pass", "fail"):
+        expected = "true" if math == "pass" else "false"
+        q = q.filter(Match.verification_details["math_pass"].astext == expected)
+    if consistency and consistency in ("pass", "fail"):
+        expected = "true" if consistency == "pass" else "false"
+        q = q.filter(Match.verification_details["consistency_pass"].astext == expected)
 
     total = q.count()
     items = (

@@ -51,7 +51,7 @@ export default function Results() {
   const { toast, confirm: toastConfirm } = useToast()
   const [matches, setMatches] = useState([])
   const [pagination, setPagination] = useState({ total: 0, page: 1, per_page: 25, pages: 0 })
-  const [filters, setFilters] = useState({ provider: '', service: '', min_score: '', max_score: '', model: '', llm_mode: '', verified_status: '' })
+  const [filters, setFilters] = useState({ provider: '', service: '', min_score: '', max_score: '', model: '', llm_mode: '', verified_status: '', ip: '', canary: '', math: '', consistency: '' })
   const [providers, setProviders] = useState([])
   const [loading, setLoading] = useState(true)
   const [importing, setImporting] = useState(false)
@@ -108,6 +108,10 @@ export default function Results() {
       if (filters.llm_mode !== '') params.set('llm_mode', filters.llm_mode)
       if (filters.verified_status) params.set('verified_status', filters.verified_status)
       if (filters.model.trim()) params.set('model', filters.model.trim())
+      if (filters.ip.trim()) params.set('ip', filters.ip.trim())
+      if (filters.canary) params.set('canary', filters.canary)
+      if (filters.math) params.set('math', filters.math)
+      if (filters.consistency) params.set('consistency', filters.consistency)
       params.set('page', String(page))
       params.set('per_page', String(perPage))
       const res = await api.get(`/matches?${params.toString()}`)
@@ -571,6 +575,39 @@ export default function Results() {
             onChange={(e) => setFilters((f) => ({ ...f, model: e.target.value }))}
             className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
           />
+          <input
+            type="text" placeholder="Search IP or IP:Port..."
+            value={filters.ip}
+            onChange={(e) => setFilters((f) => ({ ...f, ip: e.target.value }))}
+            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm w-44 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+          />
+          <select
+            value={filters.canary}
+            onChange={(e) => setFilters((f) => ({ ...f, canary: e.target.value }))}
+            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+          >
+            <option value="">Canary: All</option>
+            <option value="pass">Canary: Pass</option>
+            <option value="fail">Canary: Fail</option>
+          </select>
+          <select
+            value={filters.math}
+            onChange={(e) => setFilters((f) => ({ ...f, math: e.target.value }))}
+            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+          >
+            <option value="">Math: All</option>
+            <option value="pass">Math: Pass</option>
+            <option value="fail">Math: Fail</option>
+          </select>
+          <select
+            value={filters.consistency}
+            onChange={(e) => setFilters((f) => ({ ...f, consistency: e.target.value }))}
+            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+          >
+            <option value="">Consist: All</option>
+            <option value="pass">Consist: Pass</option>
+            <option value="fail">Consist: Fail</option>
+          </select>
         </div>
       </div>
 
