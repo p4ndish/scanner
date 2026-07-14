@@ -1,0 +1,5677 @@
+{
+  "$meta": {
+    "tool": "opencode-scanner",
+    "generated_at": "2026-07-14T00:40:54Z"
+  },
+  "stats": {
+    "scan_started": "2026-07-14T00:26:24Z",
+    "scan_finished": "2026-07-14T00:40:54Z",
+    "hosts_scanned": 0,
+    "ports_probed": 0,
+    "candidates_found": 32736,
+    "matches_found": 134,
+    "phases": {
+      "phase0_zmap": {
+        "alive_hosts": 5680823,
+        "total_ips_estimated": 28325376,
+        "response_rate_pct": 20.06,
+        "cached": true
+      },
+      "phase1_masscan": {
+        "prefixes": 1965,
+        "ports": [
+          "11434",
+          "8080",
+          "8000",
+          "1234",
+          "5000",
+          "5001",
+          "7860",
+          "8888",
+          "3001"
+        ],
+        "rate": 15000,
+        "parallel": 16
+      },
+      "phase2_fingerprint": {
+        "candidates": 32736,
+        "matches": 82,
+        "methods_used": [
+          "health",
+          "doc",
+          "path",
+          "doc_title",
+          "auth_realm",
+          "error_shape",
+          "port_hint"
+        ]
+      },
+      "phase2b_full_sweep": {
+        "full_sweep_range": "1-65535",
+        "confirmed_ips": 82,
+        "sweep_candidates": 734,
+        "new_matches": 52
+      }
+    },
+    "provider_breakdown": {
+      "ucloud": {
+        "count": 28,
+        "region": "cn"
+      },
+      "kt_cloud": {
+        "count": 98,
+        "region": "kr"
+      },
+      "sakura_internet": {
+        "count": 7,
+        "region": "jp"
+      },
+      "china_unicom_cloud": {
+        "count": 1,
+        "region": "cn"
+      }
+    },
+    "scan_duration_seconds": 870
+  },
+  "matches": [
+    {
+      "ip": "185.242.235.31",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 11
+        },
+        "ollama_version": "0.17.5",
+        "openai_models": {
+          "model_count": 11
+        },
+        "openai_model_id": [
+          "kimi-k2.7-code:cloud",
+          "glm-4.7:cloud",
+          "glm-5.1:cloud",
+          "kimi-k2.6:cloud",
+          "deepseek-v4-flash:cloud"
+        ]
+      },
+      "models": [
+        "kimi-k2.7-code:cloud",
+        "glm-5.1:cloud",
+        "minimax-m2.7:cloud",
+        "deepseek-v4-flash:cloud",
+        "glm-4.7:cloud",
+        "kimi-k2.6:cloud",
+        "minimax-m2.5:cloud",
+        "minimax-m3:cloud",
+        "deepseek-v3.2:cloud",
+        "glm-5.2:cloud",
+        "deepseek-v4-pro:cloud"
+      ],
+      "version": "0.17.5",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "ucloud",
+      "region": "cn"
+    },
+    {
+      "ip": "61.99.87.155",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 15
+        },
+        "ollama_version": "0.30.8",
+        "openai_models": {
+          "model_count": 15
+        },
+        "openai_model_id": [
+          "kimi-k2.7-code:cloud",
+          "deepseek-v4-flash:cloud",
+          "minimax-m2.5:cloud",
+          "glm-5.1:cloud",
+          "kimi-k2.6:cloud"
+        ]
+      },
+      "models": [
+        "kimi-k2.7-code:cloud",
+        "minimax-m2.5:cloud",
+        "glm-5.1:cloud",
+        "kimi-k2.6:cloud",
+        "minimax-m2.7:cloud",
+        "deepseek-v3.2:cloud",
+        "deepseek-v4-flash:cloud",
+        "glm-4.7:cloud",
+        "minimax-m3:cloud",
+        "glm-5.2:cloud",
+        "qwen3.5:cloud",
+        "gemma4:12b",
+        "gemma4:31b-cloud",
+        "translategemma:4b",
+        "deepseek-v4-pro:cloud"
+      ],
+      "version": "0.30.8",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "45.153.131.86",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 15
+        },
+        "ollama_version": "0.24.0",
+        "openai_models": {
+          "model_count": 15
+        },
+        "openai_model_id": [
+          "deepseek-v4-flash:cloud",
+          "glm-4.7:cloud",
+          "glm-5.1:cloud",
+          "kimi-k2.6:cloud",
+          "deepseek-v3.2:cloud"
+        ]
+      },
+      "models": [
+        "deepseek-v3.2:cloud",
+        "deepseek-v4-flash:cloud",
+        "glm-5.1:cloud",
+        "minimax-m3:cloud",
+        "glm-5.2:cloud",
+        "kimi-k2.6:cloud",
+        "minimax-m2.5:cloud",
+        "minimax-m2.7:cloud",
+        "glm-4.7:cloud",
+        "deepseek-r1-llama70b:chat",
+        "deepseek-r1-llama8b:chat",
+        "deepseek-r1-llama8b:latest",
+        "deepseek-r1-llama70b:latest",
+        "qwen3-embedding:8b",
+        "qwen3-embedding:4b"
+      ],
+      "version": "0.24.0",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "ucloud",
+      "region": "cn"
+    },
+    {
+      "ip": "49.212.171.209",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 5
+        },
+        "ollama_version": "0.20.5",
+        "openai_models": {
+          "model_count": 5
+        },
+        "openai_model_id": [
+          "qwen3.6:27b",
+          "glm-5.2:cloud",
+          "kimi-k2.7-code:cloud",
+          "hermes_pwn:latest",
+          "deepseek-v4-pro:cloud"
+        ]
+      },
+      "models": [
+        "qwen3.6:27b",
+        "glm-5.2:cloud",
+        "kimi-k2.7-code:cloud",
+        "hermes_pwn:latest",
+        "deepseek-v4-pro:cloud"
+      ],
+      "version": "0.20.5",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "sakura_internet",
+      "region": "jp"
+    },
+    {
+      "ip": "1.251.145.126",
+      "port": 11434,
+      "score": 11,
+      "methods_hit": [
+        "port_hint",
+        "openai_models",
+        "openai_model_id",
+        "openwebui"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "openai_models": {
+          "model_count": 7
+        },
+        "openai_model_id": [
+          "translategemma:12b",
+          "sorc/qwen3.5-instruct-uncensored:9b",
+          "qwen3.5:9b",
+          "tripolskypetr/qwen3.5-uncensored-aggressive:9b",
+          "huihui_ai/qwen3.5-abliterated:9b"
+        ],
+        "openwebui_version": "0.31.2"
+      },
+      "models": [
+        "translategemma:12b",
+        "sorc/qwen3.5-instruct-uncensored:9b",
+        "qwen3.5:9b",
+        "tripolskypetr/qwen3.5-uncensored-aggressive:9b",
+        "huihui_ai/qwen3.5-abliterated:9b",
+        "dolphin3:latest",
+        "gemma4-12b-qat-uncensored:latest"
+      ],
+      "version": "0.31.2",
+      "service": "openwebui",
+      "confidence": 30,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "49.212.157.177",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 2
+        },
+        "ollama_version": "0.3.12",
+        "openai_models": {
+          "model_count": 2
+        },
+        "openai_model_id": [
+          "llama3.1:8b",
+          "nomic-embed-text:latest"
+        ]
+      },
+      "models": [
+        "llama3.1:8b",
+        "nomic-embed-text:latest"
+      ],
+      "version": "0.3.12",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "sakura_internet",
+      "region": "jp"
+    },
+    {
+      "ip": "1.234.33.105",
+      "port": 8000,
+      "score": 8,
+      "methods_hit": [
+        "port_hint",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "generic_8000",
+        "openai_models": {
+          "model_count": 1
+        },
+        "openai_model_id": [
+          "/models/qwen"
+        ]
+      },
+      "models": [
+        "/models/qwen"
+      ],
+      "version": null,
+      "service": "vllm_compat",
+      "confidence": 22,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "221.138.189.156",
+      "port": 11434,
+      "score": 11,
+      "methods_hit": [
+        "port_hint",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_version": "0.31.2",
+        "openai_models": {
+          "model_count": 1
+        },
+        "openai_model_id": [
+          "qwen2.5:7b"
+        ]
+      },
+      "models": [
+        "qwen2.5:7b"
+      ],
+      "version": "0.31.2",
+      "service": "ollama",
+      "confidence": 30,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "156.254.6.9",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 4
+        },
+        "ollama_version": "0.31.1",
+        "openai_models": {
+          "model_count": 4
+        },
+        "openai_model_id": [
+          "qwen3-vl:30b",
+          "qwen3-vl:8b",
+          "gemma3:27b",
+          "gemma3:12b"
+        ]
+      },
+      "models": [
+        "qwen3-vl:30b",
+        "qwen3-vl:8b",
+        "gemma3:27b",
+        "gemma3:12b"
+      ],
+      "version": "0.31.1",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "ucloud",
+      "region": "cn"
+    },
+    {
+      "ip": "218.239.188.146",
+      "port": 11434,
+      "score": 11,
+      "methods_hit": [
+        "port_hint",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_version": "0.30.7",
+        "openai_models": {
+          "model_count": 3
+        },
+        "openai_model_id": [
+          "medgemma1.5:latest",
+          "qwen3.5:9b",
+          "gemma4:latest"
+        ]
+      },
+      "models": [
+        "medgemma1.5:latest",
+        "qwen3.5:9b",
+        "gemma4:latest"
+      ],
+      "version": "0.30.7",
+      "service": "ollama",
+      "confidence": 30,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "58.127.230.21",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 8
+        },
+        "ollama_version": "0.30.8",
+        "openai_models": {
+          "model_count": 8
+        },
+        "openai_model_id": [
+          "qwen3-embedding:0.6b",
+          "nomic-embed-text:latest",
+          "nomic-embed-text-v2-moe:latest",
+          "laguna-xs-2.1:latest",
+          "kimi-k2.7-code:cloud"
+        ]
+      },
+      "models": [
+        "nomic-embed-text:latest",
+        "nomic-embed-text-v2-moe:latest",
+        "laguna-xs-2.1:latest",
+        "qwen3-embedding:0.6b",
+        "kimi-k2.7-code:cloud",
+        "glm-5.2:cloud",
+        "qwen3.6:latest",
+        "glm-4.7:cloud"
+      ],
+      "version": "0.30.8",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "218.55.78.161",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 3
+        },
+        "ollama_version": "0.11.4",
+        "openai_models": {
+          "model_count": 3
+        },
+        "openai_model_id": [
+          "smollm2:135m",
+          "llama3.2:3b",
+          "llama3.1:8b"
+        ]
+      },
+      "models": [
+        "smollm2:135m",
+        "llama3.2:3b",
+        "llama3.1:8b"
+      ],
+      "version": "0.11.4",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "219.250.49.157",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 13
+        },
+        "ollama_version": "0.20.2",
+        "openai_models": {
+          "model_count": 13
+        },
+        "openai_model_id": [
+          "qwen3.6:27b",
+          "kimi-k2.7-code:cloud",
+          "glm-4.7:cloud",
+          "kimi-k2.6:cloud",
+          "deepseek-v3.2:cloud"
+        ]
+      },
+      "models": [
+        "qwen3.6:27b",
+        "kimi-k2.7-code:cloud",
+        "glm-5.1:cloud",
+        "minimax-m2.5:cloud",
+        "minimax-m2.7:cloud",
+        "minimax-m3:cloud",
+        "glm-4.7:cloud",
+        "kimi-k2.6:cloud",
+        "deepseek-v3.2:cloud",
+        "deepseek-v4-flash:cloud",
+        "glm-5.2:cloud",
+        "deepseek-v4-pro:cloud",
+        "smollm2:135m"
+      ],
+      "version": "0.20.2",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "114.204.162.155",
+      "port": 7860,
+      "score": 7,
+      "methods_hit": [
+        "port_hint",
+        "a1111_sdapi"
+      ],
+      "details": {
+        "port_hint": "generic_7860",
+        "a1111_model": "sd/XL/animagine-xl-4.0-opt.safetensors"
+      },
+      "models": [
+        "sd/XL/animagine-xl-4.0-opt.safetensors"
+      ],
+      "version": null,
+      "service": "automatic1111",
+      "confidence": 19,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "24.233.1.218",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 12
+        },
+        "ollama_version": "0.24.0",
+        "openai_models": {
+          "model_count": 12
+        },
+        "openai_model_id": [
+          "kimi-k2.7-code:cloud",
+          "glm-4.7:cloud",
+          "kimi-k2.6:cloud",
+          "minimax-m2.7:cloud",
+          "glm-5.1:cloud"
+        ]
+      },
+      "models": [
+        "kimi-k2.7-code:cloud",
+        "kimi-k2.6:cloud",
+        "minimax-m2.7:cloud",
+        "minimax-m3:cloud",
+        "deepseek-v4-flash:cloud",
+        "glm-5.1:cloud",
+        "glm-5.2:cloud",
+        "minimax-m2.5:cloud",
+        "deepseek-v3.2:cloud",
+        "glm-4.7:cloud",
+        "deepseek-v4-pro:cloud",
+        "deepseek-r1:14b"
+      ],
+      "version": "0.24.0",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "ucloud",
+      "region": "cn"
+    },
+    {
+      "ip": "218.38.102.75",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 26
+        },
+        "ollama_version": "0.15.4",
+        "openai_models": {
+          "model_count": 26
+        },
+        "openai_model_id": [
+          "kimi-k2.7-code:cloud",
+          "kimi-k2.6:cloud",
+          "glm-5.1:cloud",
+          "glm-4.7:cloud",
+          "minimax-m2.5:cloud"
+        ]
+      },
+      "models": [
+        "kimi-k2.7-code:cloud",
+        "kimi-k2.6:cloud",
+        "minimax-m2.5:cloud",
+        "deepseek-v3.2:cloud",
+        "glm-4.7:cloud",
+        "glm-5.2:cloud",
+        "glm-5.1:cloud",
+        "deepseek-v4-flash:cloud",
+        "minimax-m3:cloud",
+        "minimax-m2.7:cloud",
+        "hermes_pwn:latest",
+        "nemotron-3-super:cloud",
+        "glm-5:cloud",
+        "glm-4.6:cloud",
+        "kimi-k2-thinking:cloud",
+        "minimax-m2:cloud",
+        "minimax-m2.1:cloud",
+        "gemini-3-flash-preview:cloud",
+        "Qwen3.5:cloud",
+        "qwen3.5:cloud",
+        "qwen3-coder-next:cloud",
+        "qwen3-next:80b-cloud",
+        "kimi-k2.5:cloud",
+        "deepseek-v4-pro:cloud",
+        "llama3.2:3b",
+        "exaone3.5:7.8b"
+      ],
+      "version": "0.15.4",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "1.252.134.74",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 6
+        },
+        "ollama_version": "0.30.11",
+        "openai_models": {
+          "model_count": 6
+        },
+        "openai_model_id": [
+          "qwen2.5-coder:7b",
+          "gemma:7b",
+          "qwen3:latest",
+          "llama3:latest",
+          "nomic-embed-text:latest"
+        ]
+      },
+      "models": [
+        "qwen2.5-coder:7b",
+        "gemma:7b",
+        "qwen3:latest",
+        "llama3:latest",
+        "nomic-embed-text:latest",
+        "exaone3.5:7.8b"
+      ],
+      "version": "0.30.11",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "103.197.25.144",
+      "port": 8000,
+      "score": 8,
+      "methods_hit": [
+        "port_hint",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "generic_8000",
+        "openai_models": {
+          "model_count": 1
+        },
+        "openai_model_id": [
+          "Qwen3.5-9B"
+        ]
+      },
+      "models": [
+        "Qwen3.5-9B"
+      ],
+      "version": null,
+      "service": "vllm_compat",
+      "confidence": 22,
+      "provider": "ucloud",
+      "region": "cn"
+    },
+    {
+      "ip": "211.215.244.178",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 8
+        },
+        "ollama_version": "0.31.1",
+        "openai_models": {
+          "model_count": 8
+        },
+        "openai_model_id": [
+          "my_gemma4_26b:latest",
+          "gemma4:26b",
+          "kimi-k2.7-code:cloud",
+          "my-qwen3_14:latest",
+          "qwen3:14b"
+        ]
+      },
+      "models": [
+        "my_gemma4_26b:latest",
+        "gemma4:26b",
+        "kimi-k2.7-code:cloud",
+        "my-qwen3_14:latest",
+        "qwen3:14b",
+        "qwen3.6-coder-optimized:latest",
+        "qwen3.6:27b",
+        "llama3.2:3b"
+      ],
+      "version": "0.31.1",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "175.123.139.22",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 5
+        },
+        "ollama_version": "0.24.0",
+        "openai_models": {
+          "model_count": 5
+        },
+        "openai_model_id": [
+          "gemma4-v2-q4:latest",
+          "gemma4-coding:latest",
+          "qwen3.5-4b:latest",
+          "diqiuzhuanzhuan/jina-embeddings-v4-text-retrieval-IQ1_M.gguf:latest",
+          "qwen3.5:4b"
+        ]
+      },
+      "models": [
+        "gemma4-v2-q4:latest",
+        "gemma4-coding:latest",
+        "qwen3.5-4b:latest",
+        "diqiuzhuanzhuan/jina-embeddings-v4-text-retrieval-IQ1_M.gguf:latest",
+        "qwen3.5:4b"
+      ],
+      "version": "0.24.0",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "61.98.94.52",
+      "port": 1234,
+      "score": 8,
+      "methods_hit": [
+        "port_hint",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "lm_studio_1234",
+        "openai_models": {
+          "model_count": 3
+        },
+        "openai_model_id": [
+          "qwen/qwen3.5-9b",
+          "google/gemma-3-4b",
+          "text-embedding-nomic-embed-text-v1.5"
+        ]
+      },
+      "models": [
+        "qwen/qwen3.5-9b",
+        "google/gemma-3-4b",
+        "text-embedding-nomic-embed-text-v1.5"
+      ],
+      "version": null,
+      "service": "lm_studio",
+      "confidence": 22,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "1.243.24.153",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 15
+        },
+        "ollama_version": "0.30.7",
+        "openai_models": {
+          "model_count": 15
+        },
+        "openai_model_id": [
+          "qwen2.5:7b-instruct",
+          "kimi-k2.7-code:cloud",
+          "glm-4.7:cloud",
+          "kimi-k2.6:cloud",
+          "deepseek-v3.2:cloud"
+        ]
+      },
+      "models": [
+        "qwen2.5:7b-instruct",
+        "kimi-k2.7-code:cloud",
+        "kimi-k2.6:cloud",
+        "glm-4.7:cloud",
+        "deepseek-v4-flash:cloud",
+        "minimax-m2.5:cloud",
+        "deepseek-v3.2:cloud",
+        "glm-5.1:cloud",
+        "minimax-m3:cloud",
+        "minimax-m2.7:cloud",
+        "glm-5.2:cloud",
+        "llava:13b",
+        "exaone3.5:7.8b",
+        "deepseek-v4-pro:cloud",
+        "llama3.1:latest"
+      ],
+      "version": "0.30.7",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "1.241.236.112",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 16
+        },
+        "ollama_version": "0.13.5",
+        "openai_models": {
+          "model_count": 16
+        },
+        "openai_model_id": [
+          "kimi-k2.7-code:cloud",
+          "deepseek-v4-flash:cloud",
+          "glm-5.2:cloud",
+          "minimax-m2.5:cloud",
+          "glm-5.1:cloud"
+        ]
+      },
+      "models": [
+        "kimi-k2.7-code:cloud",
+        "minimax-m3:cloud",
+        "deepseek-v3.2:cloud",
+        "kimi-k2.6:cloud",
+        "minimax-m2.5:cloud",
+        "glm-4.7:cloud",
+        "glm-5.2:cloud",
+        "deepseek-v4-flash:cloud",
+        "glm-5.1:cloud",
+        "minimax-m2.7:cloud",
+        "bge-m3:latest",
+        "deepseek-r1:latest",
+        "qwen3.5:cloud",
+        "kimi-k2.5:cloud",
+        "qwen3-coder-next:cloud",
+        "deepseek-v4-pro:cloud"
+      ],
+      "version": "0.13.5",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "211.44.144.106",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 15
+        },
+        "ollama_version": "0.13.5",
+        "openai_models": {
+          "model_count": 15
+        },
+        "openai_model_id": [
+          "qwen3.6:27b",
+          "kimi-k2.7-code:cloud",
+          "glm-5.1:cloud",
+          "deepseek-v3.2:cloud",
+          "glm-4.7:cloud"
+        ]
+      },
+      "models": [
+        "qwen3.6:27b",
+        "kimi-k2.7-code:cloud",
+        "glm-5.1:cloud",
+        "minimax-m2.5:cloud",
+        "deepseek-v3.2:cloud",
+        "glm-4.7:cloud",
+        "minimax-m2.7:cloud",
+        "glm-5.2:cloud",
+        "deepseek-v4-flash:cloud",
+        "minimax-m3:cloud",
+        "kimi-k2.6:cloud",
+        "qwen3-coder-next:cloud",
+        "kimi-k2.5:cloud",
+        "qwen3.5:cloud",
+        "deepseek-v4-pro:cloud"
+      ],
+      "version": "0.13.5",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "58.233.55.215",
+      "port": 7860,
+      "score": 7,
+      "methods_hit": [
+        "port_hint",
+        "a1111_sdapi"
+      ],
+      "details": {
+        "port_hint": "generic_7860",
+        "a1111_model": "WAI-NSFW_iLXL_v160.safetensors [a5f58eb1c3]"
+      },
+      "models": [
+        "WAI-NSFW_iLXL_v160.safetensors [a5f58eb1c3]"
+      ],
+      "version": null,
+      "service": "automatic1111",
+      "confidence": 19,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "58.126.52.121",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 15
+        },
+        "ollama_version": "0.20.7",
+        "openai_models": {
+          "model_count": 15
+        },
+        "openai_model_id": [
+          "kimi-k2.7-code:cloud",
+          "deepseek-v3.2:cloud",
+          "glm-4.7:cloud",
+          "minimax-m2.5:cloud",
+          "minimax-m2.7:cloud"
+        ]
+      },
+      "models": [
+        "kimi-k2.7-code:cloud",
+        "minimax-m2.5:cloud",
+        "deepseek-v3.2:cloud",
+        "glm-4.7:cloud",
+        "glm-5.1:cloud",
+        "minimax-m2.7:cloud",
+        "deepseek-v4-flash:cloud",
+        "minimax-m3:cloud",
+        "glm-5.2:cloud",
+        "kimi-k2.6:cloud",
+        "llama3.2:3b",
+        "qwen3.5:cloud",
+        "kimi-k2.5:cloud",
+        "qwen3-coder-next:cloud",
+        "deepseek-v4-pro:cloud"
+      ],
+      "version": "0.20.7",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "218.106.154.231",
+      "port": 8080,
+      "score": 8,
+      "methods_hit": [
+        "port_hint",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "generic_8080",
+        "openai_models": {
+          "model_count": 2
+        },
+        "openai_model_id": [
+          "DeepSeek-R1",
+          "htExtract"
+        ]
+      },
+      "models": [
+        "DeepSeek-R1",
+        "htExtract"
+      ],
+      "version": null,
+      "service": "vllm_compat",
+      "confidence": 22,
+      "provider": "china_unicom_cloud",
+      "region": "cn"
+    },
+    {
+      "ip": "118.217.127.114",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 11
+        },
+        "ollama_version": "0.13.5",
+        "openai_models": {
+          "model_count": 11
+        },
+        "openai_model_id": [
+          "nomic-embed-text:latest",
+          "qwen3-embedding:0.6b",
+          "huihui_ai/gemma-4-abliterated:12b",
+          "huihui_ai/gpt-oss-abliterated:latest",
+          "nomic-embed-text-v2-moe:latest"
+        ]
+      },
+      "models": [
+        "nomic-embed-text:latest",
+        "huihui_ai/gemma-4-abliterated:12b",
+        "huihui_ai/gpt-oss-abliterated:latest",
+        "qwen3-embedding:0.6b",
+        "huihui_ai/gemma-4-abliterated:26b",
+        "huihui_ai/qwen3.5-abliterated:27b",
+        "huihui_ai/qwen3.6-abliterated:27b",
+        "nomic-embed-text-v2-moe:latest",
+        "kimi-k2.7-code:cloud",
+        "glm-5.2:cloud",
+        "deepseek-v4-pro:cloud"
+      ],
+      "version": "0.13.5",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "58.233.160.141",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 26
+        },
+        "ollama_version": "0.30.11",
+        "openai_models": {
+          "model_count": 26
+        },
+        "openai_model_id": [
+          "deepseek-v4-flash:cloud",
+          "glm-4.7:cloud",
+          "glm-5.1:cloud",
+          "minimax-m2.5:cloud",
+          "minimax-m2.7:cloud"
+        ]
+      },
+      "models": [
+        "deepseek-v4-flash:cloud",
+        "glm-4.7:cloud",
+        "glm-5.1:cloud",
+        "minimax-m2.5:cloud",
+        "minimax-m2.7:cloud",
+        "minimax-m3:cloud",
+        "glm-5.2:cloud",
+        "kimi-k2.6:cloud",
+        "deepseek-v3.2:cloud",
+        "nomic-embed-text:latest",
+        "gemma4:26b",
+        "gemma4:12b-mlx",
+        "kimi-k2.7-code:cloud",
+        "fredrezones55/Qwopus3.6:latest",
+        "qwen3.6:27b-coding-mxfp8",
+        "gemma4:31b-coding-mtp-bf16",
+        "qwen3.6:27b",
+        "gpt-oss:120b",
+        "nemotron-3-super:latest",
+        "gemma4:e2b",
+        "qwen3.6:latest",
+        "gemma4:e4b",
+        "gemma4:31b-cloud",
+        "gemma4:latest",
+        "glm-5:cloud",
+        "qwen3-coder:480b-cloud"
+      ],
+      "version": "0.30.11",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "103.242.2.206",
+      "port": 8000,
+      "score": 8,
+      "methods_hit": [
+        "port_hint",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "generic_8000",
+        "openai_models": {
+          "model_count": 1
+        },
+        "openai_model_id": [
+          "magpie-tts-multilingual"
+        ]
+      },
+      "models": [
+        "magpie-tts-multilingual"
+      ],
+      "version": null,
+      "service": "vllm_compat",
+      "confidence": 22,
+      "provider": "ucloud",
+      "region": "cn"
+    },
+    {
+      "ip": "175.124.188.75",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 3
+        },
+        "ollama_version": "0.31.2",
+        "openai_models": {
+          "model_count": 3
+        },
+        "openai_model_id": [
+          "kimi-k2.7-code:cloud",
+          "gemma4:12b-mlx",
+          "ornith:latest"
+        ]
+      },
+      "models": [
+        "kimi-k2.7-code:cloud",
+        "gemma4:12b-mlx",
+        "ornith:latest"
+      ],
+      "version": "0.31.2",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "154.89.149.135",
+      "port": 7860,
+      "score": 8,
+      "methods_hit": [
+        "port_hint",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "generic_7860",
+        "openai_models": {
+          "model_count": 5
+        },
+        "openai_model_id": [
+          "gemini-auto",
+          "gemini-2.5-flash",
+          "gemini-2.5-pro",
+          "gemini-3-flash-preview",
+          "gemini-3-pro-preview"
+        ]
+      },
+      "models": [
+        "gemini-auto",
+        "gemini-2.5-flash",
+        "gemini-2.5-pro",
+        "gemini-3-flash-preview",
+        "gemini-3-pro-preview"
+      ],
+      "version": null,
+      "service": "vllm_compat",
+      "confidence": 22,
+      "provider": "ucloud",
+      "region": "cn"
+    },
+    {
+      "ip": "175.123.111.25",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 11
+        },
+        "ollama_version": "0.31.2",
+        "openai_models": {
+          "model_count": 11
+        },
+        "openai_model_id": [
+          "gemma4:12b-mlx",
+          "qwen3.6:35b-mlx",
+          "qwen3-coder:30b",
+          "qwen2.5-coder:7b",
+          "gemma4:31b-mlx"
+        ]
+      },
+      "models": [
+        "gemma4:12b-mlx",
+        "qwen3.6:35b-mlx",
+        "qwen3-coder:30b",
+        "qwen2.5-coder:7b",
+        "gemma4:31b-mlx",
+        "gemma4:e4b-mlx",
+        "qwen3.5:9b-mlx",
+        "gpt-oss:20b",
+        "nomic-embed-text:v1.5",
+        "qwen2.5-coder:1.5b",
+        "llama3.1:8b"
+      ],
+      "version": "0.31.2",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "222.236.195.68",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 4
+        },
+        "ollama_version": "0.31.2",
+        "openai_models": {
+          "model_count": 4
+        },
+        "openai_model_id": [
+          "qwen2.5-coder:14b",
+          "0xIbra/supergemma4-26b-uncensored-gguf-v2:Q4_K_M",
+          "gemma4:e4b",
+          "gemma4:26b"
+        ]
+      },
+      "models": [
+        "qwen2.5-coder:14b",
+        "0xIbra/supergemma4-26b-uncensored-gguf-v2:Q4_K_M",
+        "gemma4:e4b",
+        "gemma4:26b"
+      ],
+      "version": "0.31.2",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "175.126.106.217",
+      "port": 1234,
+      "score": 8,
+      "methods_hit": [
+        "port_hint",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "lm_studio_1234",
+        "openai_models": {
+          "model_count": 3
+        },
+        "openai_model_id": [
+          "supergemma4-e4b-abliterated",
+          "supergemma4-26b-uncensored-fast-v2-q4_k_m_gguf",
+          "text-embedding-nomic-embed-text-v1.5"
+        ]
+      },
+      "models": [
+        "supergemma4-e4b-abliterated",
+        "supergemma4-26b-uncensored-fast-v2-q4_k_m_gguf",
+        "text-embedding-nomic-embed-text-v1.5"
+      ],
+      "version": null,
+      "service": "lm_studio",
+      "confidence": 22,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "58.233.240.75",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 11
+        },
+        "ollama_version": "0.21.1",
+        "openai_models": {
+          "model_count": 11
+        },
+        "openai_model_id": [
+          "kimi-k2.7-code:cloud",
+          "deepseek-v4-flash:cloud",
+          "glm-4.7:cloud",
+          "glm-5.1:cloud",
+          "minimax-m2.7:cloud"
+        ]
+      },
+      "models": [
+        "kimi-k2.7-code:cloud",
+        "minimax-m3:cloud",
+        "deepseek-v3.2:cloud",
+        "kimi-k2.6:cloud",
+        "minimax-m2.7:cloud",
+        "deepseek-v4-flash:cloud",
+        "glm-4.7:cloud",
+        "glm-5.1:cloud",
+        "minimax-m2.5:cloud",
+        "glm-5.2:cloud",
+        "deepseek-v4-pro:cloud"
+      ],
+      "version": "0.21.1",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "222.237.78.160",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 27
+        },
+        "ollama_version": "0.30.6",
+        "openai_models": {
+          "model_count": 27
+        },
+        "openai_model_id": [
+          "gemma4:26b",
+          "laguna-xs-2.1:latest",
+          "nomic-embed-text:latest",
+          "qwen3-embedding:0.6b",
+          "huihui_ai/qwen3.5-abliterated:27b"
+        ]
+      },
+      "models": [
+        "huihui_ai/gpt-oss-abliterated:latest",
+        "gemma4:26b",
+        "laguna-xs-2.1:latest",
+        "nomic-embed-text:latest",
+        "qwen3-embedding:0.6b",
+        "huihui_ai/qwen3.5-abliterated:27b",
+        "huihui_ai/gemma-4-abliterated:12b",
+        "huihui_ai/qwen3.6-abliterated:27b",
+        "huihui_ai/glm-4.7-flash-abliterated:latest",
+        "nomic-embed-text-v2-moe:latest",
+        "huihui_ai/gemma-4-abliterated:26b",
+        "kimi-k2.7-code:cloud",
+        "minimax-m2.5:cloud",
+        "glm-4.7:cloud",
+        "kimi-k2.6:cloud",
+        "deepseek-v3.2:cloud",
+        "deepseek-v4-flash:cloud",
+        "minimax-m2.7:cloud",
+        "minimax-m3:cloud",
+        "glm-5.1:cloud",
+        "glm-5.2:cloud",
+        "gemma4-agent:latest",
+        "deepseek-v4-pro:cloud",
+        "qwen3.5:9b",
+        "gemma4:e2b",
+        "gemma4:e4b",
+        "gemma4:12b"
+      ],
+      "version": "0.30.6",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "218.38.151.64",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 14
+        },
+        "ollama_version": "0.16.2",
+        "openai_models": {
+          "model_count": 14
+        },
+        "openai_model_id": [
+          "kimi-k2.7-code:cloud",
+          "deepseek-v4-flash:cloud",
+          "glm-5.1:cloud",
+          "kimi-k2.6:cloud",
+          "minimax-m2.5:cloud"
+        ]
+      },
+      "models": [
+        "kimi-k2.7-code:cloud",
+        "minimax-m3:cloud",
+        "deepseek-v3.2:cloud",
+        "deepseek-v4-flash:cloud",
+        "glm-4.7:cloud",
+        "kimi-k2.6:cloud",
+        "minimax-m2.5:cloud",
+        "glm-5.1:cloud",
+        "minimax-m2.7:cloud",
+        "glm-5.2:cloud",
+        "deepseek-v4-pro:cloud",
+        "qwen3.6:35b",
+        "glm-4.7-flash:latest",
+        "llama3.2:3b"
+      ],
+      "version": "0.16.2",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "211.215.175.251",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 16
+        },
+        "ollama_version": "0.15.2",
+        "openai_models": {
+          "model_count": 16
+        },
+        "openai_model_id": [
+          "kimi-k2.7-code:cloud",
+          "minimax-m2.7:cloud",
+          "minimax-m2.5:cloud",
+          "deepseek-v4-flash:cloud",
+          "kimi-k2.6:cloud"
+        ]
+      },
+      "models": [
+        "kimi-k2.7-code:cloud",
+        "minimax-m2.7:cloud",
+        "deepseek-v4-flash:cloud",
+        "glm-5.1:cloud",
+        "minimax-m3:cloud",
+        "deepseek-v3.2:cloud",
+        "kimi-k2.6:cloud",
+        "minimax-m2.5:cloud",
+        "glm-5.2:cloud",
+        "glm-4.7:cloud",
+        "deepseek-v4-pro:cloud",
+        "bge-m3:latest",
+        "llama3.2:3b",
+        "gemma3:latest",
+        "exaone3.5:ko",
+        "exaone3.5:7.8b"
+      ],
+      "version": "0.15.2",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "45.116.79.171",
+      "port": 5000,
+      "score": 8,
+      "methods_hit": [
+        "port_hint",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "generic_5000",
+        "openai_models": {
+          "model_count": 1
+        },
+        "openai_model_id": [
+          "gemini-pro"
+        ]
+      },
+      "models": [
+        "gemini-pro"
+      ],
+      "version": null,
+      "service": "vllm_compat",
+      "confidence": 22,
+      "provider": "ucloud",
+      "region": "cn"
+    },
+    {
+      "ip": "58.236.227.2",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 12
+        },
+        "ollama_version": "0.30.10",
+        "openai_models": {
+          "model_count": 12
+        },
+        "openai_model_id": [
+          "qwen3.6:27b",
+          "kimi-k2.7-code:cloud",
+          "minimax-m2.7:cloud",
+          "minimax-m3:cloud",
+          "minimax-m2.5:cloud"
+        ]
+      },
+      "models": [
+        "qwen3.6:27b",
+        "kimi-k2.7-code:cloud",
+        "deepseek-v4-flash:cloud",
+        "glm-4.7:cloud",
+        "minimax-m2.7:cloud",
+        "minimax-m3:cloud",
+        "minimax-m2.5:cloud",
+        "kimi-k2.6:cloud",
+        "deepseek-v3.2:cloud",
+        "glm-5.1:cloud",
+        "glm-5.2:cloud",
+        "gemma4:e2b"
+      ],
+      "version": "0.30.10",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "118.217.7.2",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 15
+        },
+        "ollama_version": "0.20.2",
+        "openai_models": {
+          "model_count": 15
+        },
+        "openai_model_id": [
+          "kimi-k2.7-code:cloud",
+          "minimax-m2.7:cloud",
+          "deepseek-v4-flash:cloud",
+          "glm-4.7:cloud",
+          "kimi-k2.6:cloud"
+        ]
+      },
+      "models": [
+        "kimi-k2.7-code:cloud",
+        "minimax-m2.7:cloud",
+        "deepseek-v3.2:cloud",
+        "glm-5.1:cloud",
+        "kimi-k2.6:cloud",
+        "minimax-m3:cloud",
+        "glm-4.7:cloud",
+        "minimax-m2.5:cloud",
+        "deepseek-v4-flash:cloud",
+        "glm-5.2:cloud",
+        "deepseek-v4-pro:cloud",
+        "gemma4:e4b",
+        "qwen3.5:9b",
+        "exaone3.5:7.8b",
+        "llama3.1:8b"
+      ],
+      "version": "0.20.2",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "211.109.52.200",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 1
+        },
+        "ollama_version": "0.31.1",
+        "openai_models": {
+          "model_count": 1
+        },
+        "openai_model_id": [
+          "gemma4:12b"
+        ]
+      },
+      "models": [
+        "gemma4:12b"
+      ],
+      "version": "0.31.1",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "103.238.227.104",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 21
+        },
+        "ollama_version": "0.24.0",
+        "openai_models": {
+          "model_count": 21
+        },
+        "openai_model_id": [
+          "qwen3.6:27b",
+          "kimi-k2.7-code:cloud",
+          "minimax-m2.7:cloud",
+          "minimax-m3:cloud",
+          "glm-5.1:cloud"
+        ]
+      },
+      "models": [
+        "qwen3.6:27b",
+        "kimi-k2.7-code:cloud",
+        "minimax-m2.5:cloud",
+        "minimax-m2.7:cloud",
+        "glm-4.7:cloud",
+        "minimax-m3:cloud",
+        "deepseek-v3.2:cloud",
+        "glm-5.1:cloud",
+        "glm-5.2:cloud",
+        "deepseek-v4-flash:cloud",
+        "kimi-k2.6:cloud",
+        "gemini-3-flash-preview:cloud",
+        "qwen3-coder-next:cloud",
+        "qwen3.5:397b-cloud",
+        "nemotron-3-super:cloud",
+        "gemma4:31b-cloud",
+        "deepseek-v4-pro:cloud",
+        "gpt-oss:120b-cloud",
+        "embeddinggemma:latest",
+        "mxbai-embed-large:latest",
+        "nomic-embed-text:latest"
+      ],
+      "version": "0.24.0",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "ucloud",
+      "region": "cn"
+    },
+    {
+      "ip": "58.125.118.43",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 14
+        },
+        "ollama_version": "0.21.2",
+        "openai_models": {
+          "model_count": 14
+        },
+        "openai_model_id": [
+          "kimi-k2.7-code:cloud",
+          "kimi-k2.6:cloud",
+          "minimax-m2.7:cloud",
+          "deepseek-v4-flash:cloud",
+          "glm-4.7:cloud"
+        ]
+      },
+      "models": [
+        "kimi-k2.7-code:cloud",
+        "glm-4.7:cloud",
+        "glm-5.1:cloud",
+        "kimi-k2.6:cloud",
+        "minimax-m3:cloud",
+        "deepseek-v4-flash:cloud",
+        "minimax-m2.5:cloud",
+        "minimax-m2.7:cloud",
+        "deepseek-v3.2:cloud",
+        "glm-5.2:cloud",
+        "deepseek-v4-pro:cloud",
+        "qwen2.5:3b",
+        "gemma3:4b",
+        "gemma4:e4b"
+      ],
+      "version": "0.21.2",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "1.224.135.174",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 12
+        },
+        "ollama_version": "0.31.1",
+        "openai_models": {
+          "model_count": 12
+        },
+        "openai_model_id": [
+          "deepseek-v4-flash:cloud",
+          "deepseek-v3.2:cloud",
+          "glm-4.7:cloud",
+          "glm-5.1:cloud",
+          "kimi-k2.6:cloud"
+        ]
+      },
+      "models": [
+        "minimax-m2.7:cloud",
+        "glm-5.2:cloud",
+        "minimax-m3:cloud",
+        "deepseek-v4-flash:cloud",
+        "deepseek-v3.2:cloud",
+        "glm-4.7:cloud",
+        "glm-5.1:cloud",
+        "kimi-k2.6:cloud",
+        "minimax-m2.5:cloud",
+        "gemma4:12b",
+        "gemma4:latest",
+        "gemma4:26b"
+      ],
+      "version": "0.31.1",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "116.121.112.75",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 14
+        },
+        "ollama_version": "0.31.1",
+        "openai_models": {
+          "model_count": 14
+        },
+        "openai_model_id": [
+          "kimi-k2.7-code:cloud",
+          "deepseek-v3.2:cloud",
+          "deepseek-v4-flash:cloud",
+          "glm-5.1:cloud",
+          "kimi-k2.6:cloud"
+        ]
+      },
+      "models": [
+        "kimi-k2.7-code:cloud",
+        "deepseek-v3.2:cloud",
+        "kimi-k2.6:cloud",
+        "minimax-m3:cloud",
+        "minimax-m2.5:cloud",
+        "minimax-m2.7:cloud",
+        "glm-4.7:cloud",
+        "deepseek-v4-flash:cloud",
+        "glm-5.1:cloud",
+        "glm-5.2:cloud",
+        "deepseek-v4-pro:cloud",
+        "gemma4:26b",
+        "gemma4:31b",
+        "gemma4:e4b"
+      ],
+      "version": "0.31.1",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "182.237.2.77",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 6
+        },
+        "ollama_version": "0.23.1",
+        "openai_models": {
+          "model_count": 6
+        },
+        "openai_model_id": [
+          "glm-5.2:cloud",
+          "x/flux2-klein:latest",
+          "deepseek-v4-pro:cloud",
+          "qwen:0.5b",
+          "qwen2.5:1.5b"
+        ]
+      },
+      "models": [
+        "glm-5.2:cloud",
+        "x/flux2-klein:latest",
+        "deepseek-v4-pro:cloud",
+        "qwen:0.5b",
+        "qwen2.5:1.5b",
+        "qwen3.5:2b"
+      ],
+      "version": "0.23.1",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "ucloud",
+      "region": "cn"
+    },
+    {
+      "ip": "221.143.47.22",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 12
+        },
+        "ollama_version": "0.11.2",
+        "openai_models": {
+          "model_count": 12
+        },
+        "openai_model_id": [
+          "huihui_ai/gemma-4-abliterated:26b",
+          "huihui_ai/glm-4.7-flash-abliterated:latest",
+          "huihui_ai/gpt-oss-abliterated:latest",
+          "nomic-embed-text:latest",
+          "nomic-embed-text-v2-moe:latest"
+        ]
+      },
+      "models": [
+        "mistral-medium-3.5:latest",
+        "nomic-embed-text-v2-moe:latest",
+        "huihui_ai/gemma-4-abliterated:12b",
+        "huihui_ai/glm-4.7-flash-abliterated:latest",
+        "huihui_ai/qwen3.6-abliterated:27b",
+        "nomic-embed-text:latest",
+        "huihui_ai/gemma-4-abliterated:26b",
+        "huihui_ai/gpt-oss-abliterated:latest",
+        "laguna-xs-2.1:latest",
+        "huihui_ai/qwen3.5-abliterated:27b",
+        "qwen3.6:27b",
+        "qwen3.6:35b"
+      ],
+      "version": "0.11.2",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "175.114.70.111",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 12
+        },
+        "ollama_version": "0.30.0",
+        "openai_models": {
+          "model_count": 12
+        },
+        "openai_model_id": [
+          "qwen3.6:27b",
+          "glm-5.2:cloud",
+          "kimi-k2.6:cloud",
+          "glm-4.7:cloud",
+          "minimax-m3:cloud"
+        ]
+      },
+      "models": [
+        "qwen3.6:27b",
+        "glm-4.7:cloud",
+        "minimax-m3:cloud",
+        "deepseek-v3.2:cloud",
+        "glm-5.1:cloud",
+        "minimax-m2.7:cloud",
+        "deepseek-v4-flash:cloud",
+        "minimax-m2.5:cloud",
+        "glm-5.2:cloud",
+        "kimi-k2.6:cloud",
+        "gemma4:latest",
+        "bge-m3:latest"
+      ],
+      "version": "0.30.0",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "1.224.208.92",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 34
+        },
+        "ollama_version": "0.17.5",
+        "openai_models": {
+          "model_count": 34
+        },
+        "openai_model_id": [
+          "kimi-k2.7-code:cloud",
+          "deepseek-v3.2:cloud",
+          "glm-5.2:cloud",
+          "minimax-m3:cloud",
+          "kimi-k2.6:cloud"
+        ]
+      },
+      "models": [
+        "kimi-k2.7-code:cloud",
+        "deepseek-v3.2:cloud",
+        "glm-5.2:cloud",
+        "deepseek-v4-flash:cloud",
+        "kimi-k2.6:cloud",
+        "minimax-m2.7:cloud",
+        "minimax-m3:cloud",
+        "minimax-m2.5:cloud",
+        "glm-5.1:cloud",
+        "glm-4.7:cloud",
+        "glm-5:cloud",
+        "qwen3.5:cloud",
+        "glm-4.6:cloud",
+        "minimax-m2.1:cloud",
+        "nemotron-3-super:cloud",
+        "gemini-3-flash-preview:cloud",
+        "kimi-k2-thinking:cloud",
+        "minimax-m2:cloud",
+        "kimi-k2.5:cloud",
+        "deepseek-v4-pro:cloud",
+        "qwen3-coder-next:cloud",
+        "qwen3-next:80b-cloud",
+        "glm-4.7-flash:latest",
+        "llama3.2:3b",
+        "qwen3.5:27b",
+        "qwen3.5:9b",
+        "qwen3.5-fast:latest",
+        "qwen3-coder:30b",
+        "did100/qwen2.5-32B-Instruct-Q4_K_M:latest",
+        "qwen2.5-coder:32b",
+        "qwen3-vl:30b",
+        "qwen2.5:32b",
+        "glm-4.7-flash:q4_K_M",
+        "qwen3:14b"
+      ],
+      "version": "0.17.5",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "114.202.193.58",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 13
+        },
+        "ollama_version": "0.31.1",
+        "openai_models": {
+          "model_count": 13
+        },
+        "openai_model_id": [
+          "qwen3.6:27b",
+          "kimi-k2.7-code:cloud",
+          "deepseek-v4-flash:cloud",
+          "minimax-m2.7:cloud",
+          "glm-4.7:cloud"
+        ]
+      },
+      "models": [
+        "qwen3.6:27b",
+        "kimi-k2.7-code:cloud",
+        "deepseek-v4-flash:cloud",
+        "minimax-m2.7:cloud",
+        "glm-4.7:cloud",
+        "glm-5.1:cloud",
+        "minimax-m2.5:cloud",
+        "kimi-k2.6:cloud",
+        "minimax-m3:cloud",
+        "deepseek-v3.2:cloud",
+        "glm-5.2:cloud",
+        "deepseek-v4-pro:cloud",
+        "gemma4:e2b"
+      ],
+      "version": "0.31.1",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "222.235.103.68",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 6
+        },
+        "ollama_version": "0.31.2",
+        "openai_models": {
+          "model_count": 6
+        },
+        "openai_model_id": [
+          "kimi-k2.7-code:cloud",
+          "bge-m3:latest",
+          "qwen2.5:14b",
+          "qwen3.6:35b-a3b",
+          "qwen3-vl:30b"
+        ]
+      },
+      "models": [
+        "kimi-k2.7-code:cloud",
+        "bge-m3:latest",
+        "qwen2.5:14b",
+        "qwen3.6:35b-a3b",
+        "qwen3-vl:30b",
+        "gemma4:26b"
+      ],
+      "version": "0.31.2",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "219.94.240.242",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 8
+        },
+        "ollama_version": "0.20.7",
+        "openai_models": {
+          "model_count": 8
+        },
+        "openai_model_id": [
+          "nomic-embed-text:latest",
+          "nomic-embed-text-v2-moe:latest",
+          "qwen3-embedding:0.6b",
+          "qwen3.6:27b",
+          "kimi-k2.7-code:cloud"
+        ]
+      },
+      "models": [
+        "nomic-embed-text:latest",
+        "nomic-embed-text-v2-moe:latest",
+        "qwen3-embedding:0.6b",
+        "qwen3.6:27b",
+        "kimi-k2.7-code:cloud",
+        "glm-5.2:cloud",
+        "deepseek-v4-pro:cloud",
+        "gemma3:4b"
+      ],
+      "version": "0.20.7",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "sakura_internet",
+      "region": "jp"
+    },
+    {
+      "ip": "180.70.179.215",
+      "port": 1234,
+      "score": 8,
+      "methods_hit": [
+        "port_hint",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "lm_studio_1234",
+        "openai_models": {
+          "model_count": 3
+        },
+        "openai_model_id": [
+          "gemma-4-e4b-it",
+          "google/gemma-4-12b-qat",
+          "text-embedding-nomic-embed-text-v1.5"
+        ]
+      },
+      "models": [
+        "gemma-4-e4b-it",
+        "google/gemma-4-12b-qat",
+        "text-embedding-nomic-embed-text-v1.5"
+      ],
+      "version": null,
+      "service": "lm_studio",
+      "confidence": 22,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "211.210.71.71",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 5
+        },
+        "ollama_version": "0.30.6",
+        "openai_models": {
+          "model_count": 5
+        },
+        "openai_model_id": [
+          "ingu627/exaone4.0:1.2b",
+          "glm-5.2:cloud",
+          "gemma4:31b-cloud",
+          "bge-m3:latest",
+          "exaone3.5:2.4b"
+        ]
+      },
+      "models": [
+        "ingu627/exaone4.0:1.2b",
+        "glm-5.2:cloud",
+        "gemma4:31b-cloud",
+        "bge-m3:latest",
+        "exaone3.5:2.4b"
+      ],
+      "version": "0.30.6",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "221.143.22.27",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 12
+        },
+        "ollama_version": "0.20.7",
+        "openai_models": {
+          "model_count": 12
+        },
+        "openai_model_id": [
+          "deepseek-v3.2:cloud",
+          "deepseek-v4-flash:cloud",
+          "glm-5.1:cloud",
+          "minimax-m2.5:cloud",
+          "glm-4.7:cloud"
+        ]
+      },
+      "models": [
+        "deepseek-v3.2:cloud",
+        "deepseek-v4-flash:cloud",
+        "glm-4.7:cloud",
+        "glm-5.1:cloud",
+        "minimax-m2.5:cloud",
+        "minimax-m2.7:cloud",
+        "kimi-k2.6:cloud",
+        "minimax-m3:cloud",
+        "glm-5.2:cloud",
+        "kimi-k2.7-code:cloud",
+        "qwen3.5:9b",
+        "deepseek-v4-pro:cloud"
+      ],
+      "version": "0.20.7",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "103.197.25.181",
+      "port": 3001,
+      "score": 9,
+      "methods_hit": [
+        "port_hint",
+        "ollama_version",
+        "invokeai"
+      ],
+      "details": {
+        "port_hint": "generic_3001",
+        "ollama_version": "1.0.0",
+        "invokeai_version": "1.0.0"
+      },
+      "models": [],
+      "version": "1.0.0",
+      "service": "ollama",
+      "confidence": 24,
+      "provider": "ucloud",
+      "region": "cn"
+    },
+    {
+      "ip": "221.138.168.161",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 15
+        },
+        "ollama_version": "0.30.8",
+        "openai_models": {
+          "model_count": 15
+        },
+        "openai_model_id": [
+          "deepseek-v3.2:cloud",
+          "kimi-k2.6:cloud",
+          "glm-5.1:cloud",
+          "deepseek-v4-flash:cloud",
+          "minimax-m2.5:cloud"
+        ]
+      },
+      "models": [
+        "deepseek-v4-flash:cloud",
+        "minimax-m2.5:cloud",
+        "glm-5.2:cloud",
+        "minimax-m3:cloud",
+        "minimax-m2.7:cloud",
+        "glm-4.7:cloud",
+        "deepseek-v3.2:cloud",
+        "kimi-k2.6:cloud",
+        "glm-5.1:cloud",
+        "my-qwen-35b:latest",
+        "qwen3.5:35b",
+        "my-gemma4-31b:latest",
+        "gemma4:latest",
+        "my-fast-70b:latest",
+        "jinbora/deepseek-r1-Bllossom:70b"
+      ],
+      "version": "0.30.8",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "58.236.239.29",
+      "port": 1234,
+      "score": 8,
+      "methods_hit": [
+        "port_hint",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "lm_studio_1234",
+        "openai_models": {
+          "model_count": 5
+        },
+        "openai_model_id": [
+          "phi-3.1-mini-128k-instruct",
+          "hermes-3-llama-3.2-3b",
+          "qwen2.5-7b-instruct-1m",
+          "mistral-7b-instruct-v0.2",
+          "text-embedding-nomic-embed-text-v1.5"
+        ]
+      },
+      "models": [
+        "phi-3.1-mini-128k-instruct",
+        "hermes-3-llama-3.2-3b",
+        "qwen2.5-7b-instruct-1m",
+        "mistral-7b-instruct-v0.2",
+        "text-embedding-nomic-embed-text-v1.5"
+      ],
+      "version": null,
+      "service": "lm_studio",
+      "confidence": 22,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "39.115.143.73",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 16
+        },
+        "ollama_version": "0.31.1",
+        "openai_models": {
+          "model_count": 16
+        },
+        "openai_model_id": [
+          "qwen2.5-coder:14b",
+          "maipper-v1.1_gemma4:latest",
+          "maipper-v1_gemma4:latest",
+          "gemma3:12b",
+          "minimax-m2.7:cloud"
+        ]
+      },
+      "models": [
+        "qwen2.5-coder:14b",
+        "maipper-v1.1_gemma4:latest",
+        "maipper-v1_gemma4:latest",
+        "gemma3:12b",
+        "deepseek-v4-flash:cloud",
+        "glm-4.7:cloud",
+        "minimax-m2.5:cloud",
+        "minimax-m3:cloud",
+        "deepseek-v3.2:cloud",
+        "glm-5.2:cloud",
+        "minimax-m2.7:cloud",
+        "kimi-k2.6:cloud",
+        "glm-5.1:cloud",
+        "deepseek-r1:14b",
+        "qwen3:14b",
+        "gemma4:12b"
+      ],
+      "version": "0.31.1",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "185.239.87.230",
+      "port": 8888,
+      "score": 8,
+      "methods_hit": [
+        "port_hint",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "generic_8888",
+        "openai_models": {
+          "model_count": 1
+        },
+        "openai_model_id": [
+          "gpt-4o-mini-tts"
+        ]
+      },
+      "models": [
+        "gpt-4o-mini-tts"
+      ],
+      "version": null,
+      "service": "vllm_compat",
+      "confidence": 22,
+      "provider": "ucloud",
+      "region": "cn"
+    },
+    {
+      "ip": "1.236.245.110",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 6
+        },
+        "ollama_version": "0.4.2",
+        "openai_models": {
+          "model_count": 6
+        },
+        "openai_model_id": [
+          "qwen3.6:35b",
+          "llama3.2:3b",
+          "qwen2.5:7b",
+          "llava:latest",
+          "ollama-ko-1206_1:latest"
+        ]
+      },
+      "models": [
+        "qwen3.6:35b",
+        "llama3.2:3b",
+        "qwen2.5:7b",
+        "llava:latest",
+        "ollama-ko-1206_1:latest",
+        "ollama-ko-1206:latest"
+      ],
+      "version": "0.4.2",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "1.238.137.60",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 20
+        },
+        "ollama_version": "0.20.7",
+        "openai_models": {
+          "model_count": 20
+        },
+        "openai_model_id": [
+          "qwen3.6:27b",
+          "kimi-k2.7-code:cloud",
+          "glm-4.7:cloud",
+          "minimax-m2.5:cloud",
+          "minimax-m2.7:cloud"
+        ]
+      },
+      "models": [
+        "qwen3.6:27b",
+        "kimi-k2.7-code:cloud",
+        "glm-4.7:cloud",
+        "minimax-m2.5:cloud",
+        "kimi-k2.6:cloud",
+        "deepseek-v3.2:cloud",
+        "deepseek-v4-flash:cloud",
+        "glm-5.2:cloud",
+        "minimax-m3:cloud",
+        "glm-5.1:cloud",
+        "minimax-m2.7:cloud",
+        "kimi-k2.5:cloud",
+        "qwen3.5:cloud",
+        "qwen3-coder-next:cloud",
+        "deepseek-v4-pro:cloud",
+        "gemma4:e4b",
+        "exaone3.5:7.8b",
+        "exaone3.5:32b",
+        "qwen2.5:32b",
+        "gemma4:26b"
+      ],
+      "version": "0.20.7",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "222.234.38.99",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 5
+        },
+        "ollama_version": "0.31.2",
+        "openai_models": {
+          "model_count": 5
+        },
+        "openai_model_id": [
+          "gemma3:270m",
+          "gemma3:1b",
+          "gemma3:latest",
+          "gemma4:e2b",
+          "gemma4:e4b"
+        ]
+      },
+      "models": [
+        "gemma3:270m",
+        "gemma3:1b",
+        "gemma3:latest",
+        "gemma4:e2b",
+        "gemma4:e4b"
+      ],
+      "version": "0.31.2",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "154.89.148.252",
+      "port": 1234,
+      "score": 8,
+      "methods_hit": [
+        "port_hint",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "lm_studio_1234",
+        "openai_models": {
+          "model_count": 5
+        },
+        "openai_model_id": [
+          "localplayer/gemma4/gemma-4-26b-a4b-it-heretic.iq4_nl.gguf",
+          "gemma4@q4_k_m",
+          "localplayer/gemma4/qwen3.6-27b-neo-code-here-2t-ot-iq4_nl.gguf",
+          "text-embedding-bge-m3",
+          "text-embedding-nomic-embed-text-v1.5"
+        ]
+      },
+      "models": [
+        "localplayer/gemma4/gemma-4-26b-a4b-it-heretic.iq4_nl.gguf",
+        "gemma4@q4_k_m",
+        "localplayer/gemma4/qwen3.6-27b-neo-code-here-2t-ot-iq4_nl.gguf",
+        "text-embedding-bge-m3",
+        "text-embedding-nomic-embed-text-v1.5"
+      ],
+      "version": null,
+      "service": "lm_studio",
+      "confidence": 22,
+      "provider": "ucloud",
+      "region": "cn"
+    },
+    {
+      "ip": "1.227.21.165",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 3
+        },
+        "ollama_version": "0.30.10",
+        "openai_models": {
+          "model_count": 3
+        },
+        "openai_model_id": [
+          "kimi-k2.7-code:cloud",
+          "gemma4:12b",
+          "gemma4:e2b"
+        ]
+      },
+      "models": [
+        "kimi-k2.7-code:cloud",
+        "gemma4:12b",
+        "gemma4:e2b"
+      ],
+      "version": "0.30.10",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "121.124.52.125",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 4
+        },
+        "ollama_version": "0.30.11",
+        "openai_models": {
+          "model_count": 4
+        },
+        "openai_model_id": [
+          "kimi-k2.7-code:cloud",
+          "glm-5.2:cloud",
+          "gemma4:12b-mlx",
+          "mxbai-embed-large:latest"
+        ]
+      },
+      "models": [
+        "kimi-k2.7-code:cloud",
+        "glm-5.2:cloud",
+        "gemma4:12b-mlx",
+        "mxbai-embed-large:latest"
+      ],
+      "version": "0.30.11",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "58.225.1.126",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 10
+        },
+        "ollama_version": "0.30.6",
+        "openai_models": {
+          "model_count": 10
+        },
+        "openai_model_id": [
+          "glm-5.1:cloud",
+          "minimax-m2.5:cloud",
+          "minimax-m2.7:cloud",
+          "deepseek-v3.2:cloud",
+          "deepseek-v4-flash:cloud"
+        ]
+      },
+      "models": [
+        "deepseek-v3.2:cloud",
+        "deepseek-v4-flash:cloud",
+        "glm-5.2:cloud",
+        "minimax-m3:cloud",
+        "glm-4.7:cloud",
+        "kimi-k2.6:cloud",
+        "glm-5.1:cloud",
+        "minimax-m2.5:cloud",
+        "minimax-m2.7:cloud",
+        "gemma4:12b"
+      ],
+      "version": "0.30.6",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "211.201.59.184",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 25
+        },
+        "ollama_version": "0.12.2",
+        "openai_models": {
+          "model_count": 25
+        },
+        "openai_model_id": [
+          "nomic-embed-text:latest",
+          "huihui_ai/gemma-4-abliterated:26b",
+          "huihui_ai/glm-4.7-flash-abliterated:latest",
+          "nomic-embed-text-v2-moe:latest",
+          "huihui_ai/qwen3.6-abliterated:27b"
+        ]
+      },
+      "models": [
+        "nomic-embed-text:latest",
+        "huihui_ai/gemma-4-abliterated:12b",
+        "huihui_ai/gemma-4-abliterated:26b",
+        "huihui_ai/glm-4.7-flash-abliterated:latest",
+        "huihui_ai/gpt-oss-abliterated:latest",
+        "qwen3-embedding:0.6b",
+        "huihui_ai/qwen3.6-abliterated:27b",
+        "nomic-embed-text-v2-moe:latest",
+        "huihui_ai/qwen3.5-abliterated:27b",
+        "laguna-xs-2.1:latest",
+        "kimi-k2.7-code:cloud",
+        "glm-4.7:cloud",
+        "deepseek-v4-flash:cloud",
+        "minimax-m2.7:cloud",
+        "minimax-m3:cloud",
+        "glm-5.1:cloud",
+        "deepseek-v3.2:cloud",
+        "kimi-k2.6:cloud",
+        "minimax-m2.5:cloud",
+        "glm-5.2:cloud",
+        "gemma3:12b-it-qat",
+        "exaone3.5:7.8b",
+        "qwen3:14b",
+        "deepseek-v4-pro:cloud",
+        "qwen2.5-coder:14b"
+      ],
+      "version": "0.12.2",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "218.39.149.219",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 31
+        },
+        "ollama_version": "0.20.3",
+        "openai_models": {
+          "model_count": 31
+        },
+        "openai_model_id": [
+          "kimi-k2.7-code:cloud",
+          "kimi-k2.6:cloud",
+          "minimax-m3:cloud",
+          "deepseek-v3.2:cloud",
+          "glm-5.2:cloud"
+        ]
+      },
+      "models": [
+        "kimi-k2.7-code:cloud",
+        "minimax-m2.7:cloud",
+        "minimax-m3:cloud",
+        "glm-4.7:cloud",
+        "deepseek-v4-flash:cloud",
+        "glm-5.2:cloud",
+        "minimax-m2.5:cloud",
+        "kimi-k2.6:cloud",
+        "deepseek-v3.2:cloud",
+        "glm-5.1:cloud",
+        "kimi-k2-thinking:cloud",
+        "nemotron-3-super:cloud",
+        "gemini-3-flash-preview:cloud",
+        "glm-4.6:cloud",
+        "minimax-m2:cloud",
+        "Qwen3.5:cloud",
+        "minimax-m2.1:cloud",
+        "glm-5:cloud",
+        "qwen3.5:cloud",
+        "bge-m3:latest",
+        "deepseek-v4-pro:cloud",
+        "kimi-k2.5:cloud",
+        "qwen3-coder-next:cloud",
+        "qwen3-next:80b-cloud",
+        "qwen2.5:7b",
+        "qwen3-vl:latest",
+        "qwen2.5:14b",
+        "phi4:latest",
+        "llama3.2:3b",
+        "gpt-oss:20b",
+        "gemma4:latest"
+      ],
+      "version": "0.20.3",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "211.52.183.27",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 2
+        },
+        "ollama_version": "0.20.6",
+        "openai_models": {
+          "model_count": 2
+        },
+        "openai_model_id": [
+          "qwen3.6:latest",
+          "gemma4:latest"
+        ]
+      },
+      "models": [
+        "qwen3.6:latest",
+        "gemma4:latest"
+      ],
+      "version": "0.20.6",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "218.51.131.162",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 2
+        },
+        "ollama_version": "0.23.3",
+        "openai_models": {
+          "model_count": 2
+        },
+        "openai_model_id": [
+          "qwen3.6:27b",
+          "deepseek-v4-pro:cloud"
+        ]
+      },
+      "models": [
+        "qwen3.6:27b",
+        "deepseek-v4-pro:cloud"
+      ],
+      "version": "0.23.3",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "39.118.175.73",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 1
+        },
+        "ollama_version": "0.24.0",
+        "openai_models": {
+          "model_count": 1
+        },
+        "openai_model_id": [
+          "nomic-embed-text:latest"
+        ]
+      },
+      "models": [
+        "nomic-embed-text:latest"
+      ],
+      "version": "0.24.0",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "116.121.243.116",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 12
+        },
+        "ollama_version": "0.31.2",
+        "openai_models": {
+          "model_count": 12
+        },
+        "openai_model_id": [
+          "qwen3.6:27b",
+          "glm-5.2:cloud",
+          "kimi-k2.6:cloud",
+          "minimax-m2.5:cloud",
+          "minimax-m2.7:cloud"
+        ]
+      },
+      "models": [
+        "qwen3.6:27b",
+        "minimax-m3:cloud",
+        "deepseek-v3.2:cloud",
+        "glm-4.7:cloud",
+        "glm-5.2:cloud",
+        "kimi-k2.6:cloud",
+        "minimax-m2.5:cloud",
+        "minimax-m2.7:cloud",
+        "deepseek-v4-flash:cloud",
+        "glm-5.1:cloud",
+        "gemma4:e2b-mxfp8",
+        "qwen3.5:2b-mxfp8"
+      ],
+      "version": "0.31.2",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "118.216.110.67",
+      "port": 1234,
+      "score": 8,
+      "methods_hit": [
+        "port_hint",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "lm_studio_1234",
+        "openai_models": {
+          "model_count": 3
+        },
+        "openai_model_id": [
+          "isaac-tutor-ko-9b",
+          "isaac-tutor-ko-35b",
+          "text-embedding-nomic-embed-text-v1.5"
+        ]
+      },
+      "models": [
+        "isaac-tutor-ko-9b",
+        "isaac-tutor-ko-35b",
+        "text-embedding-nomic-embed-text-v1.5"
+      ],
+      "version": null,
+      "service": "lm_studio",
+      "confidence": 22,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "218.50.128.45",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 2
+        },
+        "ollama_version": "0.11.2",
+        "openai_models": {
+          "model_count": 2
+        },
+        "openai_model_id": [
+          "nomic-embed-text-v2-moe:latest",
+          "nomic-embed-text:latest"
+        ]
+      },
+      "models": [
+        "nomic-embed-text:latest",
+        "nomic-embed-text-v2-moe:latest"
+      ],
+      "version": "0.11.2",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "118.222.92.25",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 8
+        },
+        "ollama_version": "0.11.6",
+        "openai_models": {
+          "model_count": 8
+        },
+        "openai_model_id": [
+          "qwen2.5vl:7b",
+          "minicpm-v:8b",
+          "gemma3:12b-it-qat",
+          "gemma3:4b",
+          "gemma:7b"
+        ]
+      },
+      "models": [
+        "qwen2.5vl:7b",
+        "minicpm-v:8b",
+        "gemma3:12b-it-qat",
+        "gemma3:4b",
+        "gemma:7b",
+        "qwen2.5:7b",
+        "qwen2.5:3b",
+        "llama3.2:latest"
+      ],
+      "version": "0.11.6",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "45.125.18.250",
+      "port": 11434,
+      "score": 15,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 0
+        },
+        "ollama_version": "0.30.10"
+      },
+      "models": [],
+      "version": "0.30.10",
+      "service": "ollama",
+      "confidence": 41,
+      "provider": "ucloud",
+      "region": "cn"
+    },
+    {
+      "ip": "154.89.149.106",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 3
+        },
+        "ollama_version": "0.12.11",
+        "openai_models": {
+          "model_count": 3
+        },
+        "openai_model_id": [
+          "kimi-k2.7-code:cloud",
+          "glm-5.2:cloud",
+          "deepseek-v4-pro:cloud"
+        ]
+      },
+      "models": [
+        "kimi-k2.7-code:cloud",
+        "glm-5.2:cloud",
+        "deepseek-v4-pro:cloud"
+      ],
+      "version": "0.12.11",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "ucloud",
+      "region": "cn"
+    },
+    {
+      "ip": "211.210.161.163",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 2
+        },
+        "ollama_version": "0.3.14",
+        "openai_models": {
+          "model_count": 2
+        },
+        "openai_model_id": [
+          "nomic-embed-text:latest",
+          "tinyllama:latest"
+        ]
+      },
+      "models": [
+        "nomic-embed-text:latest",
+        "tinyllama:latest"
+      ],
+      "version": "0.3.14",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "133.167.87.219",
+      "port": 8000,
+      "score": 5,
+      "methods_hit": [
+        "port_hint",
+        "piper_tts"
+      ],
+      "details": {
+        "port_hint": "generic_8000",
+        "piper_tts": true
+      },
+      "models": [],
+      "version": null,
+      "service": "piper_tts",
+      "confidence": 13,
+      "provider": "sakura_internet",
+      "region": "jp"
+    },
+    {
+      "ip": "45.125.18.250",
+      "port": 11434,
+      "score": 15,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 0
+        },
+        "ollama_version": "0.30.10"
+      },
+      "models": [],
+      "version": "0.30.10",
+      "service": "ollama",
+      "confidence": 41,
+      "provider": "ucloud",
+      "region": "cn"
+    },
+    {
+      "ip": "218.55.78.161",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 3
+        },
+        "ollama_version": "0.11.4",
+        "openai_models": {
+          "model_count": 3
+        },
+        "openai_model_id": [
+          "smollm2:135m",
+          "llama3.2:3b",
+          "llama3.1:8b"
+        ]
+      },
+      "models": [
+        "smollm2:135m",
+        "llama3.2:3b",
+        "llama3.1:8b"
+      ],
+      "version": "0.11.4",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "218.39.149.219",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 31
+        },
+        "ollama_version": "0.20.3",
+        "openai_models": {
+          "model_count": 31
+        },
+        "openai_model_id": [
+          "kimi-k2.7-code:cloud",
+          "deepseek-v4-flash:cloud",
+          "minimax-m3:cloud",
+          "deepseek-v3.2:cloud",
+          "glm-4.7:cloud"
+        ]
+      },
+      "models": [
+        "kimi-k2.7-code:cloud",
+        "glm-5.2:cloud",
+        "minimax-m2.7:cloud",
+        "glm-4.7:cloud",
+        "deepseek-v3.2:cloud",
+        "glm-5.1:cloud",
+        "minimax-m2.5:cloud",
+        "kimi-k2.6:cloud",
+        "minimax-m3:cloud",
+        "deepseek-v4-flash:cloud",
+        "kimi-k2-thinking:cloud",
+        "nemotron-3-super:cloud",
+        "gemini-3-flash-preview:cloud",
+        "glm-4.6:cloud",
+        "Qwen3.5:cloud",
+        "minimax-m2.1:cloud",
+        "glm-5:cloud",
+        "minimax-m2:cloud",
+        "qwen3.5:cloud",
+        "bge-m3:latest",
+        "deepseek-v4-pro:cloud",
+        "kimi-k2.5:cloud",
+        "qwen3-coder-next:cloud",
+        "qwen3-next:80b-cloud",
+        "qwen2.5:7b",
+        "qwen3-vl:latest",
+        "qwen2.5:14b",
+        "phi4:latest",
+        "llama3.2:3b",
+        "gpt-oss:20b",
+        "gemma4:latest"
+      ],
+      "version": "0.20.3",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "1.224.135.174",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 12
+        },
+        "ollama_version": "0.31.1",
+        "openai_models": {
+          "model_count": 12
+        },
+        "openai_model_id": [
+          "glm-5.1:cloud",
+          "kimi-k2.6:cloud",
+          "minimax-m2.5:cloud",
+          "minimax-m2.7:cloud",
+          "glm-5.2:cloud"
+        ]
+      },
+      "models": [
+        "glm-5.2:cloud",
+        "minimax-m3:cloud",
+        "deepseek-v4-flash:cloud",
+        "deepseek-v3.2:cloud",
+        "glm-4.7:cloud",
+        "glm-5.1:cloud",
+        "kimi-k2.6:cloud",
+        "minimax-m2.5:cloud",
+        "minimax-m2.7:cloud",
+        "gemma4:12b",
+        "gemma4:latest",
+        "gemma4:26b"
+      ],
+      "version": "0.31.1",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "218.38.151.64",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 14
+        },
+        "ollama_version": "0.16.2",
+        "openai_models": {
+          "model_count": 14
+        },
+        "openai_model_id": [
+          "kimi-k2.7-code:cloud",
+          "glm-5.1:cloud",
+          "kimi-k2.6:cloud",
+          "minimax-m2.5:cloud",
+          "minimax-m3:cloud"
+        ]
+      },
+      "models": [
+        "kimi-k2.7-code:cloud",
+        "minimax-m3:cloud",
+        "deepseek-v4-flash:cloud",
+        "glm-5.1:cloud",
+        "kimi-k2.6:cloud",
+        "deepseek-v3.2:cloud",
+        "glm-4.7:cloud",
+        "minimax-m2.5:cloud",
+        "minimax-m2.7:cloud",
+        "glm-5.2:cloud",
+        "deepseek-v4-pro:cloud",
+        "qwen3.6:35b",
+        "glm-4.7-flash:latest",
+        "llama3.2:3b"
+      ],
+      "version": "0.16.2",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "211.215.244.178",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 8
+        },
+        "ollama_version": "0.31.1",
+        "openai_models": {
+          "model_count": 8
+        },
+        "openai_model_id": [
+          "my_gemma4_26b:latest",
+          "gemma4:26b",
+          "kimi-k2.7-code:cloud",
+          "my-qwen3_14:latest",
+          "qwen3:14b"
+        ]
+      },
+      "models": [
+        "my_gemma4_26b:latest",
+        "gemma4:26b",
+        "kimi-k2.7-code:cloud",
+        "my-qwen3_14:latest",
+        "qwen3:14b",
+        "qwen3.6:27b",
+        "qwen3.6-coder-optimized:latest",
+        "llama3.2:3b"
+      ],
+      "version": "0.31.1",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "1.241.236.112",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 16
+        },
+        "ollama_version": "0.13.5",
+        "openai_models": {
+          "model_count": 16
+        },
+        "openai_model_id": [
+          "kimi-k2.7-code:cloud",
+          "minimax-m3:cloud",
+          "deepseek-v3.2:cloud",
+          "glm-5.1:cloud",
+          "glm-5.2:cloud"
+        ]
+      },
+      "models": [
+        "kimi-k2.7-code:cloud",
+        "glm-5.1:cloud",
+        "glm-5.2:cloud",
+        "minimax-m2.5:cloud",
+        "minimax-m2.7:cloud",
+        "deepseek-v4-flash:cloud",
+        "kimi-k2.6:cloud",
+        "deepseek-v3.2:cloud",
+        "glm-4.7:cloud",
+        "minimax-m3:cloud",
+        "bge-m3:latest",
+        "deepseek-r1:latest",
+        "kimi-k2.5:cloud",
+        "qwen3-coder-next:cloud",
+        "qwen3.5:cloud",
+        "deepseek-v4-pro:cloud"
+      ],
+      "version": "0.13.5",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "211.109.52.200",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 1
+        },
+        "ollama_version": "0.31.1",
+        "openai_models": {
+          "model_count": 1
+        },
+        "openai_model_id": [
+          "gemma4:12b"
+        ]
+      },
+      "models": [
+        "gemma4:12b"
+      ],
+      "version": "0.31.1",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "221.143.47.22",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 12
+        },
+        "ollama_version": "0.11.2",
+        "openai_models": {
+          "model_count": 12
+        },
+        "openai_model_id": [
+          "huihui_ai/gemma-4-abliterated:12b",
+          "huihui_ai/gemma-4-abliterated:26b",
+          "huihui_ai/qwen3.6-abliterated:27b",
+          "nomic-embed-text:latest",
+          "nomic-embed-text-v2-moe:latest"
+        ]
+      },
+      "models": [
+        "nomic-embed-text:latest",
+        "huihui_ai/gemma-4-abliterated:26b",
+        "huihui_ai/qwen3.6-abliterated:27b",
+        "nomic-embed-text-v2-moe:latest",
+        "huihui_ai/gemma-4-abliterated:12b",
+        "huihui_ai/glm-4.7-flash-abliterated:latest",
+        "huihui_ai/gpt-oss-abliterated:latest",
+        "mistral-medium-3.5:latest",
+        "huihui_ai/qwen3.5-abliterated:27b",
+        "laguna-xs-2.1:latest",
+        "qwen3.6:27b",
+        "qwen3.6:35b"
+      ],
+      "version": "0.11.2",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "116.121.112.75",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 14
+        },
+        "ollama_version": "0.31.1",
+        "openai_models": {
+          "model_count": 14
+        },
+        "openai_model_id": [
+          "kimi-k2.7-code:cloud",
+          "deepseek-v3.2:cloud",
+          "minimax-m2.5:cloud",
+          "minimax-m2.7:cloud",
+          "glm-4.7:cloud"
+        ]
+      },
+      "models": [
+        "kimi-k2.7-code:cloud",
+        "deepseek-v3.2:cloud",
+        "glm-5.1:cloud",
+        "kimi-k2.6:cloud",
+        "minimax-m3:cloud",
+        "minimax-m2.5:cloud",
+        "minimax-m2.7:cloud",
+        "glm-4.7:cloud",
+        "deepseek-v4-flash:cloud",
+        "glm-5.2:cloud",
+        "deepseek-v4-pro:cloud",
+        "gemma4:26b",
+        "gemma4:31b",
+        "gemma4:e4b"
+      ],
+      "version": "0.31.1",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "211.44.144.106",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 15
+        },
+        "ollama_version": "0.13.5",
+        "openai_models": {
+          "model_count": 15
+        },
+        "openai_model_id": [
+          "qwen3.6:27b",
+          "kimi-k2.7-code:cloud",
+          "deepseek-v3.2:cloud",
+          "glm-4.7:cloud",
+          "minimax-m2.7:cloud"
+        ]
+      },
+      "models": [
+        "qwen3.6:27b",
+        "kimi-k2.7-code:cloud",
+        "minimax-m2.5:cloud",
+        "deepseek-v3.2:cloud",
+        "minimax-m2.7:cloud",
+        "glm-4.7:cloud",
+        "glm-5.1:cloud",
+        "kimi-k2.6:cloud",
+        "glm-5.2:cloud",
+        "minimax-m3:cloud",
+        "deepseek-v4-flash:cloud",
+        "kimi-k2.5:cloud",
+        "qwen3-coder-next:cloud",
+        "qwen3.5:cloud",
+        "deepseek-v4-pro:cloud"
+      ],
+      "version": "0.13.5",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "1.234.33.105",
+      "port": 8000,
+      "score": 8,
+      "methods_hit": [
+        "port_hint",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "generic_8000",
+        "openai_models": {
+          "model_count": 1
+        },
+        "openai_model_id": [
+          "/models/qwen"
+        ]
+      },
+      "models": [
+        "/models/qwen"
+      ],
+      "version": null,
+      "service": "vllm_compat",
+      "confidence": 22,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "1.238.137.60",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 20
+        },
+        "ollama_version": "0.20.7",
+        "openai_models": {
+          "model_count": 20
+        },
+        "openai_model_id": [
+          "qwen3.6:27b",
+          "kimi-k2.7-code:cloud",
+          "glm-4.7:cloud",
+          "minimax-m2.5:cloud",
+          "glm-5.2:cloud"
+        ]
+      },
+      "models": [
+        "qwen3.6:27b",
+        "kimi-k2.7-code:cloud",
+        "glm-4.7:cloud",
+        "minimax-m2.5:cloud",
+        "minimax-m2.7:cloud",
+        "minimax-m3:cloud",
+        "glm-5.1:cloud",
+        "deepseek-v4-flash:cloud",
+        "deepseek-v3.2:cloud",
+        "glm-5.2:cloud",
+        "kimi-k2.6:cloud",
+        "qwen3-coder-next:cloud",
+        "deepseek-v4-pro:cloud",
+        "qwen3.5:cloud",
+        "kimi-k2.5:cloud",
+        "gemma4:e4b",
+        "exaone3.5:7.8b",
+        "exaone3.5:32b",
+        "qwen2.5:32b",
+        "gemma4:26b"
+      ],
+      "version": "0.20.7",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "39.115.143.73",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 16
+        },
+        "ollama_version": "0.31.1",
+        "openai_models": {
+          "model_count": 16
+        },
+        "openai_model_id": [
+          "qwen2.5-coder:14b",
+          "maipper-v1.1_gemma4:latest",
+          "maipper-v1_gemma4:latest",
+          "gemma3:12b",
+          "deepseek-v4-flash:cloud"
+        ]
+      },
+      "models": [
+        "qwen2.5-coder:14b",
+        "maipper-v1.1_gemma4:latest",
+        "maipper-v1_gemma4:latest",
+        "gemma3:12b",
+        "deepseek-v3.2:cloud",
+        "glm-5.2:cloud",
+        "minimax-m2.7:cloud",
+        "kimi-k2.6:cloud",
+        "glm-5.1:cloud",
+        "deepseek-v4-flash:cloud",
+        "glm-4.7:cloud",
+        "minimax-m2.5:cloud",
+        "minimax-m3:cloud",
+        "deepseek-r1:14b",
+        "qwen3:14b",
+        "gemma4:12b"
+      ],
+      "version": "0.31.1",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "180.70.179.215",
+      "port": 1234,
+      "score": 8,
+      "methods_hit": [
+        "port_hint",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "lm_studio_1234",
+        "openai_models": {
+          "model_count": 3
+        },
+        "openai_model_id": [
+          "gemma-4-e4b-it",
+          "google/gemma-4-12b-qat",
+          "text-embedding-nomic-embed-text-v1.5"
+        ]
+      },
+      "models": [
+        "gemma-4-e4b-it",
+        "google/gemma-4-12b-qat",
+        "text-embedding-nomic-embed-text-v1.5"
+      ],
+      "version": null,
+      "service": "lm_studio",
+      "confidence": 22,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "222.236.195.68",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 4
+        },
+        "ollama_version": "0.31.2",
+        "openai_models": {
+          "model_count": 4
+        },
+        "openai_model_id": [
+          "qwen2.5-coder:14b",
+          "0xIbra/supergemma4-26b-uncensored-gguf-v2:Q4_K_M",
+          "gemma4:e4b",
+          "gemma4:26b"
+        ]
+      },
+      "models": [
+        "qwen2.5-coder:14b",
+        "0xIbra/supergemma4-26b-uncensored-gguf-v2:Q4_K_M",
+        "gemma4:e4b",
+        "gemma4:26b"
+      ],
+      "version": "0.31.2",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "211.215.175.251",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 16
+        },
+        "ollama_version": "0.15.2",
+        "openai_models": {
+          "model_count": 16
+        },
+        "openai_model_id": [
+          "kimi-k2.7-code:cloud",
+          "deepseek-v3.2:cloud",
+          "minimax-m2.7:cloud",
+          "kimi-k2.6:cloud",
+          "minimax-m3:cloud"
+        ]
+      },
+      "models": [
+        "kimi-k2.7-code:cloud",
+        "minimax-m2.5:cloud",
+        "deepseek-v3.2:cloud",
+        "deepseek-v4-flash:cloud",
+        "minimax-m2.7:cloud",
+        "kimi-k2.6:cloud",
+        "minimax-m3:cloud",
+        "glm-5.1:cloud",
+        "glm-5.2:cloud",
+        "glm-4.7:cloud",
+        "deepseek-v4-pro:cloud",
+        "bge-m3:latest",
+        "llama3.2:3b",
+        "gemma3:latest",
+        "exaone3.5:ko",
+        "exaone3.5:7.8b"
+      ],
+      "version": "0.15.2",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "103.238.227.104",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 21
+        },
+        "ollama_version": "0.24.0",
+        "openai_models": {
+          "model_count": 21
+        },
+        "openai_model_id": [
+          "qwen3.6:27b",
+          "kimi-k2.7-code:cloud",
+          "minimax-m2.5:cloud",
+          "minimax-m3:cloud",
+          "glm-4.7:cloud"
+        ]
+      },
+      "models": [
+        "qwen3.6:27b",
+        "kimi-k2.7-code:cloud",
+        "minimax-m2.5:cloud",
+        "glm-5.1:cloud",
+        "minimax-m2.7:cloud",
+        "glm-4.7:cloud",
+        "minimax-m3:cloud",
+        "deepseek-v3.2:cloud",
+        "deepseek-v4-flash:cloud",
+        "glm-5.2:cloud",
+        "kimi-k2.6:cloud",
+        "gemini-3-flash-preview:cloud",
+        "qwen3-coder-next:cloud",
+        "qwen3.5:397b-cloud",
+        "nemotron-3-super:cloud",
+        "gemma4:31b-cloud",
+        "deepseek-v4-pro:cloud",
+        "gpt-oss:120b-cloud",
+        "embeddinggemma:latest",
+        "mxbai-embed-large:latest",
+        "nomic-embed-text:latest"
+      ],
+      "version": "0.24.0",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "ucloud",
+      "region": "cn"
+    },
+    {
+      "ip": "211.52.183.27",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 2
+        },
+        "ollama_version": "0.20.6",
+        "openai_models": {
+          "model_count": 2
+        },
+        "openai_model_id": [
+          "qwen3.6:latest",
+          "gemma4:latest"
+        ]
+      },
+      "models": [
+        "qwen3.6:latest",
+        "gemma4:latest"
+      ],
+      "version": "0.20.6",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "114.202.193.58",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 13
+        },
+        "ollama_version": "0.31.1",
+        "openai_models": {
+          "model_count": 13
+        },
+        "openai_model_id": [
+          "qwen3.6:27b",
+          "kimi-k2.7-code:cloud",
+          "deepseek-v4-flash:cloud",
+          "minimax-m2.7:cloud",
+          "glm-4.7:cloud"
+        ]
+      },
+      "models": [
+        "qwen3.6:27b",
+        "kimi-k2.7-code:cloud",
+        "deepseek-v4-flash:cloud",
+        "minimax-m2.7:cloud",
+        "glm-4.7:cloud",
+        "glm-5.1:cloud",
+        "minimax-m3:cloud",
+        "deepseek-v3.2:cloud",
+        "minimax-m2.5:cloud",
+        "kimi-k2.6:cloud",
+        "glm-5.2:cloud",
+        "deepseek-v4-pro:cloud",
+        "gemma4:e2b"
+      ],
+      "version": "0.31.1",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "58.233.160.141",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 26
+        },
+        "ollama_version": "0.30.11",
+        "openai_models": {
+          "model_count": 26
+        },
+        "openai_model_id": [
+          "glm-4.7:cloud",
+          "glm-5.1:cloud",
+          "minimax-m2.5:cloud",
+          "minimax-m2.7:cloud",
+          "minimax-m3:cloud"
+        ]
+      },
+      "models": [
+        "minimax-m2.5:cloud",
+        "minimax-m2.7:cloud",
+        "minimax-m3:cloud",
+        "glm-5.2:cloud",
+        "deepseek-v4-flash:cloud",
+        "glm-4.7:cloud",
+        "glm-5.1:cloud",
+        "kimi-k2.6:cloud",
+        "deepseek-v3.2:cloud",
+        "nomic-embed-text:latest",
+        "gemma4:26b",
+        "gemma4:12b-mlx",
+        "kimi-k2.7-code:cloud",
+        "fredrezones55/Qwopus3.6:latest",
+        "qwen3.6:27b-coding-mxfp8",
+        "gemma4:31b-coding-mtp-bf16",
+        "qwen3.6:27b",
+        "gpt-oss:120b",
+        "nemotron-3-super:latest",
+        "gemma4:e2b",
+        "qwen3.6:latest",
+        "gemma4:e4b",
+        "gemma4:31b-cloud",
+        "gemma4:latest",
+        "glm-5:cloud",
+        "qwen3-coder:480b-cloud"
+      ],
+      "version": "0.30.11",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "118.217.7.2",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 15
+        },
+        "ollama_version": "0.20.2",
+        "openai_models": {
+          "model_count": 15
+        },
+        "openai_model_id": [
+          "kimi-k2.7-code:cloud",
+          "deepseek-v4-flash:cloud",
+          "kimi-k2.6:cloud",
+          "minimax-m2.5:cloud",
+          "minimax-m3:cloud"
+        ]
+      },
+      "models": [
+        "kimi-k2.7-code:cloud",
+        "minimax-m3:cloud",
+        "glm-5.1:cloud",
+        "minimax-m2.5:cloud",
+        "deepseek-v3.2:cloud",
+        "minimax-m2.7:cloud",
+        "deepseek-v4-flash:cloud",
+        "glm-4.7:cloud",
+        "kimi-k2.6:cloud",
+        "glm-5.2:cloud",
+        "deepseek-v4-pro:cloud",
+        "gemma4:e4b",
+        "qwen3.5:9b",
+        "exaone3.5:7.8b",
+        "llama3.1:8b"
+      ],
+      "version": "0.20.2",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "58.126.52.121",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 15
+        },
+        "ollama_version": "0.20.7",
+        "openai_models": {
+          "model_count": 15
+        },
+        "openai_model_id": [
+          "kimi-k2.7-code:cloud",
+          "deepseek-v3.2:cloud",
+          "glm-4.7:cloud",
+          "minimax-m2.7:cloud",
+          "glm-5.1:cloud"
+        ]
+      },
+      "models": [
+        "kimi-k2.7-code:cloud",
+        "minimax-m2.5:cloud",
+        "deepseek-v3.2:cloud",
+        "minimax-m2.7:cloud",
+        "glm-4.7:cloud",
+        "glm-5.1:cloud",
+        "minimax-m3:cloud",
+        "deepseek-v4-flash:cloud",
+        "glm-5.2:cloud",
+        "kimi-k2.6:cloud",
+        "llama3.2:3b",
+        "qwen3-coder-next:cloud",
+        "qwen3.5:cloud",
+        "kimi-k2.5:cloud",
+        "deepseek-v4-pro:cloud"
+      ],
+      "version": "0.20.7",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "211.201.59.184",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 25
+        },
+        "ollama_version": "0.12.2",
+        "openai_models": {
+          "model_count": 25
+        },
+        "openai_model_id": [
+          "huihui_ai/gpt-oss-abliterated:latest",
+          "huihui_ai/qwen3.6-abliterated:27b",
+          "qwen3-embedding:0.6b",
+          "nomic-embed-text:latest",
+          "huihui_ai/gemma-4-abliterated:12b"
+        ]
+      },
+      "models": [
+        "nomic-embed-text-v2-moe:latest",
+        "huihui_ai/gemma-4-abliterated:12b",
+        "huihui_ai/gemma-4-abliterated:26b",
+        "nomic-embed-text:latest",
+        "huihui_ai/glm-4.7-flash-abliterated:latest",
+        "huihui_ai/qwen3.6-abliterated:27b",
+        "qwen3-embedding:0.6b",
+        "huihui_ai/gpt-oss-abliterated:latest",
+        "huihui_ai/qwen3.5-abliterated:27b",
+        "laguna-xs-2.1:latest",
+        "kimi-k2.7-code:cloud",
+        "deepseek-v4-flash:cloud",
+        "minimax-m3:cloud",
+        "glm-5.1:cloud",
+        "deepseek-v3.2:cloud",
+        "glm-4.7:cloud",
+        "kimi-k2.6:cloud",
+        "minimax-m2.5:cloud",
+        "minimax-m2.7:cloud",
+        "glm-5.2:cloud",
+        "gemma3:12b-it-qat",
+        "exaone3.5:7.8b",
+        "qwen3:14b",
+        "deepseek-v4-pro:cloud",
+        "qwen2.5-coder:14b"
+      ],
+      "version": "0.12.2",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "221.143.22.27",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 12
+        },
+        "ollama_version": "0.20.7",
+        "openai_models": {
+          "model_count": 12
+        },
+        "openai_model_id": [
+          "glm-4.7:cloud",
+          "glm-5.1:cloud",
+          "minimax-m2.5:cloud",
+          "kimi-k2.6:cloud",
+          "minimax-m2.7:cloud"
+        ]
+      },
+      "models": [
+        "deepseek-v3.2:cloud",
+        "glm-4.7:cloud",
+        "kimi-k2.6:cloud",
+        "minimax-m2.7:cloud",
+        "deepseek-v4-flash:cloud",
+        "glm-5.1:cloud",
+        "minimax-m2.5:cloud",
+        "minimax-m3:cloud",
+        "glm-5.2:cloud",
+        "kimi-k2.7-code:cloud",
+        "qwen3.5:9b",
+        "deepseek-v4-pro:cloud"
+      ],
+      "version": "0.20.7",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "222.235.103.68",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 6
+        },
+        "ollama_version": "0.31.2",
+        "openai_models": {
+          "model_count": 6
+        },
+        "openai_model_id": [
+          "kimi-k2.7-code:cloud",
+          "bge-m3:latest",
+          "qwen2.5:14b",
+          "qwen3.6:35b-a3b",
+          "qwen3-vl:30b"
+        ]
+      },
+      "models": [
+        "kimi-k2.7-code:cloud",
+        "bge-m3:latest",
+        "qwen2.5:14b",
+        "qwen3.6:35b-a3b",
+        "qwen3-vl:30b",
+        "gemma4:26b"
+      ],
+      "version": "0.31.2",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "58.125.118.43",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 14
+        },
+        "ollama_version": "0.21.2",
+        "openai_models": {
+          "model_count": 14
+        },
+        "openai_model_id": [
+          "kimi-k2.7-code:cloud",
+          "minimax-m2.7:cloud",
+          "deepseek-v4-flash:cloud",
+          "minimax-m2.5:cloud",
+          "minimax-m3:cloud"
+        ]
+      },
+      "models": [
+        "kimi-k2.7-code:cloud",
+        "minimax-m3:cloud",
+        "deepseek-v3.2:cloud",
+        "deepseek-v4-flash:cloud",
+        "glm-4.7:cloud",
+        "kimi-k2.6:cloud",
+        "minimax-m2.5:cloud",
+        "glm-5.1:cloud",
+        "minimax-m2.7:cloud",
+        "glm-5.2:cloud",
+        "deepseek-v4-pro:cloud",
+        "qwen2.5:3b",
+        "gemma3:4b",
+        "gemma4:e4b"
+      ],
+      "version": "0.21.2",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "221.138.168.161",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 15
+        },
+        "ollama_version": "0.30.8",
+        "openai_models": {
+          "model_count": 15
+        },
+        "openai_model_id": [
+          "minimax-m2.7:cloud",
+          "glm-4.7:cloud",
+          "deepseek-v3.2:cloud",
+          "kimi-k2.6:cloud",
+          "glm-5.1:cloud"
+        ]
+      },
+      "models": [
+        "deepseek-v4-flash:cloud",
+        "minimax-m2.5:cloud",
+        "glm-5.2:cloud",
+        "minimax-m3:cloud",
+        "minimax-m2.7:cloud",
+        "glm-4.7:cloud",
+        "deepseek-v3.2:cloud",
+        "kimi-k2.6:cloud",
+        "glm-5.1:cloud",
+        "my-qwen-35b:latest",
+        "qwen3.5:35b",
+        "my-gemma4-31b:latest",
+        "gemma4:latest",
+        "my-fast-70b:latest",
+        "jinbora/deepseek-r1-Bllossom:70b"
+      ],
+      "version": "0.30.8",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "61.98.94.52",
+      "port": 1234,
+      "score": 8,
+      "methods_hit": [
+        "port_hint",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "lm_studio_1234",
+        "openai_models": {
+          "model_count": 3
+        },
+        "openai_model_id": [
+          "qwen/qwen3.5-9b",
+          "google/gemma-3-4b",
+          "text-embedding-nomic-embed-text-v1.5"
+        ]
+      },
+      "models": [
+        "qwen/qwen3.5-9b",
+        "google/gemma-3-4b",
+        "text-embedding-nomic-embed-text-v1.5"
+      ],
+      "version": null,
+      "service": "lm_studio",
+      "confidence": 22,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "175.126.106.217",
+      "port": 1234,
+      "score": 8,
+      "methods_hit": [
+        "port_hint",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "lm_studio_1234",
+        "openai_models": {
+          "model_count": 3
+        },
+        "openai_model_id": [
+          "supergemma4-e4b-abliterated",
+          "supergemma4-26b-uncensored-fast-v2-q4_k_m_gguf",
+          "text-embedding-nomic-embed-text-v1.5"
+        ]
+      },
+      "models": [
+        "supergemma4-e4b-abliterated",
+        "supergemma4-26b-uncensored-fast-v2-q4_k_m_gguf",
+        "text-embedding-nomic-embed-text-v1.5"
+      ],
+      "version": null,
+      "service": "lm_studio",
+      "confidence": 22,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "222.237.78.160",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 27
+        },
+        "ollama_version": "0.30.6",
+        "openai_models": {
+          "model_count": 27
+        },
+        "openai_model_id": [
+          "huihui_ai/gemma-4-abliterated:12b",
+          "huihui_ai/qwen3.6-abliterated:27b",
+          "huihui_ai/glm-4.7-flash-abliterated:latest",
+          "huihui_ai/gpt-oss-abliterated:latest",
+          "gemma4:26b"
+        ]
+      },
+      "models": [
+        "huihui_ai/gemma-4-abliterated:12b",
+        "huihui_ai/qwen3.6-abliterated:27b",
+        "huihui_ai/glm-4.7-flash-abliterated:latest",
+        "huihui_ai/gpt-oss-abliterated:latest",
+        "gemma4:26b",
+        "laguna-xs-2.1:latest",
+        "nomic-embed-text:latest",
+        "qwen3-embedding:0.6b",
+        "huihui_ai/qwen3.5-abliterated:27b",
+        "huihui_ai/gemma-4-abliterated:26b",
+        "nomic-embed-text-v2-moe:latest",
+        "kimi-k2.7-code:cloud",
+        "minimax-m2.5:cloud",
+        "minimax-m3:cloud",
+        "glm-5.1:cloud",
+        "glm-4.7:cloud",
+        "kimi-k2.6:cloud",
+        "deepseek-v3.2:cloud",
+        "deepseek-v4-flash:cloud",
+        "minimax-m2.7:cloud",
+        "glm-5.2:cloud",
+        "gemma4-agent:latest",
+        "deepseek-v4-pro:cloud",
+        "qwen3.5:9b",
+        "gemma4:e2b",
+        "gemma4:e4b",
+        "gemma4:12b"
+      ],
+      "version": "0.30.6",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "58.126.52.121",
+      "port": 6001,
+      "score": 7,
+      "methods_hit": [
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "openai_models": {
+          "model_count": 1
+        },
+        "openai_model_id": [
+          "gemma-4-128k"
+        ]
+      },
+      "models": [
+        "gemma-4-128k"
+      ],
+      "version": null,
+      "service": "vllm_compat",
+      "confidence": 19,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "154.89.149.106",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 3
+        },
+        "ollama_version": "0.12.11",
+        "openai_models": {
+          "model_count": 3
+        },
+        "openai_model_id": [
+          "kimi-k2.7-code:cloud",
+          "glm-5.2:cloud",
+          "deepseek-v4-pro:cloud"
+        ]
+      },
+      "models": [
+        "kimi-k2.7-code:cloud",
+        "glm-5.2:cloud",
+        "deepseek-v4-pro:cloud"
+      ],
+      "version": "0.12.11",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "ucloud",
+      "region": "cn"
+    },
+    {
+      "ip": "185.242.235.31",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 11
+        },
+        "ollama_version": "0.17.5",
+        "openai_models": {
+          "model_count": 11
+        },
+        "openai_model_id": [
+          "kimi-k2.7-code:cloud",
+          "minimax-m3:cloud",
+          "deepseek-v3.2:cloud",
+          "deepseek-v4-flash:cloud",
+          "glm-5.1:cloud"
+        ]
+      },
+      "models": [
+        "kimi-k2.7-code:cloud",
+        "deepseek-v3.2:cloud",
+        "glm-4.7:cloud",
+        "glm-5.1:cloud",
+        "kimi-k2.6:cloud",
+        "minimax-m2.5:cloud",
+        "deepseek-v4-flash:cloud",
+        "minimax-m2.7:cloud",
+        "minimax-m3:cloud",
+        "glm-5.2:cloud",
+        "deepseek-v4-pro:cloud"
+      ],
+      "version": "0.17.5",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "ucloud",
+      "region": "cn"
+    },
+    {
+      "ip": "175.123.139.22",
+      "port": 8000,
+      "score": 8,
+      "methods_hit": [
+        "port_hint",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "generic_8000",
+        "openai_models": {
+          "model_count": 1
+        },
+        "openai_model_id": [
+          "google/gemma-4-E2B-it-qat-w4a16-ct"
+        ]
+      },
+      "models": [
+        "google/gemma-4-E2B-it-qat-w4a16-ct"
+      ],
+      "version": null,
+      "service": "vllm_compat",
+      "confidence": 22,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "103.197.25.181",
+      "port": 3001,
+      "score": 9,
+      "methods_hit": [
+        "port_hint",
+        "ollama_version",
+        "invokeai"
+      ],
+      "details": {
+        "port_hint": "generic_3001",
+        "ollama_version": "1.0.0",
+        "invokeai_version": "1.0.0"
+      },
+      "models": [],
+      "version": "1.0.0",
+      "service": "ollama",
+      "confidence": 24,
+      "provider": "ucloud",
+      "region": "cn"
+    },
+    {
+      "ip": "175.123.111.25",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 11
+        },
+        "ollama_version": "0.31.2",
+        "openai_models": {
+          "model_count": 11
+        },
+        "openai_model_id": [
+          "gemma4:12b-mlx",
+          "qwen3.6:35b-mlx",
+          "qwen3-coder:30b",
+          "qwen2.5-coder:7b",
+          "gemma4:31b-mlx"
+        ]
+      },
+      "models": [
+        "gemma4:12b-mlx",
+        "qwen3.6:35b-mlx",
+        "qwen3-coder:30b",
+        "qwen2.5-coder:7b",
+        "gemma4:31b-mlx",
+        "gemma4:e4b-mlx",
+        "qwen3.5:9b-mlx",
+        "gpt-oss:20b",
+        "nomic-embed-text:v1.5",
+        "qwen2.5-coder:1.5b",
+        "llama3.1:8b"
+      ],
+      "version": "0.31.2",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "185.239.87.230",
+      "port": 8888,
+      "score": 8,
+      "methods_hit": [
+        "port_hint",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "generic_8888",
+        "openai_models": {
+          "model_count": 1
+        },
+        "openai_model_id": [
+          "gpt-4o-mini-tts"
+        ]
+      },
+      "models": [
+        "gpt-4o-mini-tts"
+      ],
+      "version": null,
+      "service": "vllm_compat",
+      "confidence": 22,
+      "provider": "ucloud",
+      "region": "cn"
+    },
+    {
+      "ip": "154.89.149.135",
+      "port": 7860,
+      "score": 8,
+      "methods_hit": [
+        "port_hint",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "generic_7860",
+        "openai_models": {
+          "model_count": 5
+        },
+        "openai_model_id": [
+          "gemini-auto",
+          "gemini-2.5-flash",
+          "gemini-2.5-pro",
+          "gemini-3-flash-preview",
+          "gemini-3-pro-preview"
+        ]
+      },
+      "models": [
+        "gemini-auto",
+        "gemini-2.5-flash",
+        "gemini-2.5-pro",
+        "gemini-3-flash-preview",
+        "gemini-3-pro-preview"
+      ],
+      "version": null,
+      "service": "vllm_compat",
+      "confidence": 22,
+      "provider": "ucloud",
+      "region": "cn"
+    },
+    {
+      "ip": "58.236.239.29",
+      "port": 1234,
+      "score": 8,
+      "methods_hit": [
+        "port_hint",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "lm_studio_1234",
+        "openai_models": {
+          "model_count": 5
+        },
+        "openai_model_id": [
+          "phi-3.1-mini-128k-instruct",
+          "hermes-3-llama-3.2-3b",
+          "qwen2.5-7b-instruct-1m",
+          "mistral-7b-instruct-v0.2",
+          "text-embedding-nomic-embed-text-v1.5"
+        ]
+      },
+      "models": [
+        "phi-3.1-mini-128k-instruct",
+        "hermes-3-llama-3.2-3b",
+        "qwen2.5-7b-instruct-1m",
+        "mistral-7b-instruct-v0.2",
+        "text-embedding-nomic-embed-text-v1.5"
+      ],
+      "version": null,
+      "service": "lm_studio",
+      "confidence": 22,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "103.242.2.206",
+      "port": 8000,
+      "score": 8,
+      "methods_hit": [
+        "port_hint",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "generic_8000",
+        "openai_models": {
+          "model_count": 1
+        },
+        "openai_model_id": [
+          "magpie-tts-multilingual"
+        ]
+      },
+      "models": [
+        "magpie-tts-multilingual"
+      ],
+      "version": null,
+      "service": "vllm_compat",
+      "confidence": 22,
+      "provider": "ucloud",
+      "region": "cn"
+    },
+    {
+      "ip": "1.251.145.126",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 7
+        },
+        "ollama_version": "0.31.2",
+        "openai_models": {
+          "model_count": 7
+        },
+        "openai_model_id": [
+          "translategemma:12b",
+          "sorc/qwen3.5-instruct-uncensored:9b",
+          "qwen3.5:9b",
+          "tripolskypetr/qwen3.5-uncensored-aggressive:9b",
+          "huihui_ai/qwen3.5-abliterated:9b"
+        ]
+      },
+      "models": [
+        "translategemma:12b",
+        "sorc/qwen3.5-instruct-uncensored:9b",
+        "qwen3.5:9b",
+        "tripolskypetr/qwen3.5-uncensored-aggressive:9b",
+        "huihui_ai/qwen3.5-abliterated:9b",
+        "dolphin3:latest",
+        "gemma4-12b-qat-uncensored:latest"
+      ],
+      "version": "0.31.2",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "182.237.2.77",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 6
+        },
+        "ollama_version": "0.23.1",
+        "openai_models": {
+          "model_count": 6
+        },
+        "openai_model_id": [
+          "glm-5.2:cloud",
+          "x/flux2-klein:latest",
+          "deepseek-v4-pro:cloud",
+          "qwen:0.5b",
+          "qwen2.5:1.5b"
+        ]
+      },
+      "models": [
+        "glm-5.2:cloud",
+        "x/flux2-klein:latest",
+        "deepseek-v4-pro:cloud",
+        "qwen:0.5b",
+        "qwen2.5:1.5b",
+        "qwen3.5:2b"
+      ],
+      "version": "0.23.1",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "ucloud",
+      "region": "cn"
+    },
+    {
+      "ip": "154.89.148.252",
+      "port": 1234,
+      "score": 8,
+      "methods_hit": [
+        "port_hint",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "lm_studio_1234",
+        "openai_models": {
+          "model_count": 5
+        },
+        "openai_model_id": [
+          "localplayer/gemma4/gemma-4-26b-a4b-it-heretic.iq4_nl.gguf",
+          "gemma4@q4_k_m",
+          "localplayer/gemma4/qwen3.6-27b-neo-code-here-2t-ot-iq4_nl.gguf",
+          "text-embedding-bge-m3",
+          "text-embedding-nomic-embed-text-v1.5"
+        ]
+      },
+      "models": [
+        "localplayer/gemma4/gemma-4-26b-a4b-it-heretic.iq4_nl.gguf",
+        "gemma4@q4_k_m",
+        "localplayer/gemma4/qwen3.6-27b-neo-code-here-2t-ot-iq4_nl.gguf",
+        "text-embedding-bge-m3",
+        "text-embedding-nomic-embed-text-v1.5"
+      ],
+      "version": null,
+      "service": "lm_studio",
+      "confidence": 22,
+      "provider": "ucloud",
+      "region": "cn"
+    },
+    {
+      "ip": "180.70.179.215",
+      "port": 1235,
+      "score": 7,
+      "methods_hit": [
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "openai_models": {
+          "model_count": 3
+        },
+        "openai_model_id": [
+          "google/gemma-4-26b-a4b-qat",
+          "gemma-4-26b-a4b-it-mlx",
+          "text-embedding-nomic-embed-text-v1.5"
+        ]
+      },
+      "models": [
+        "google/gemma-4-26b-a4b-qat",
+        "gemma-4-26b-a4b-it-mlx",
+        "text-embedding-nomic-embed-text-v1.5"
+      ],
+      "version": null,
+      "service": "vllm_compat",
+      "confidence": 19,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "58.233.55.215",
+      "port": 7860,
+      "score": 7,
+      "methods_hit": [
+        "port_hint",
+        "a1111_sdapi"
+      ],
+      "details": {
+        "port_hint": "generic_7860",
+        "a1111_model": "WAI-NSFW_iLXL_v160.safetensors [a5f58eb1c3]"
+      },
+      "models": [
+        "WAI-NSFW_iLXL_v160.safetensors [a5f58eb1c3]"
+      ],
+      "version": null,
+      "service": "automatic1111",
+      "confidence": 19,
+      "provider": "kt_cloud",
+      "region": "kr"
+    },
+    {
+      "ip": "45.153.131.86",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 15
+        },
+        "ollama_version": "0.24.0",
+        "openai_models": {
+          "model_count": 15
+        },
+        "openai_model_id": [
+          "minimax-m2.5:cloud",
+          "minimax-m3:cloud",
+          "deepseek-v3.2:cloud",
+          "deepseek-v4-flash:cloud",
+          "glm-4.7:cloud"
+        ]
+      },
+      "models": [
+        "glm-5.1:cloud",
+        "deepseek-v3.2:cloud",
+        "kimi-k2.6:cloud",
+        "minimax-m2.7:cloud",
+        "minimax-m3:cloud",
+        "deepseek-v4-flash:cloud",
+        "glm-5.2:cloud",
+        "minimax-m2.5:cloud",
+        "glm-4.7:cloud",
+        "deepseek-r1-llama70b:chat",
+        "deepseek-r1-llama8b:chat",
+        "deepseek-r1-llama8b:latest",
+        "deepseek-r1-llama70b:latest",
+        "qwen3-embedding:8b",
+        "qwen3-embedding:4b"
+      ],
+      "version": "0.24.0",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "ucloud",
+      "region": "cn"
+    },
+    {
+      "ip": "45.116.79.171",
+      "port": 5000,
+      "score": 8,
+      "methods_hit": [
+        "port_hint",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "generic_5000",
+        "openai_models": {
+          "model_count": 1
+        },
+        "openai_model_id": [
+          "gemini-pro"
+        ]
+      },
+      "models": [
+        "gemini-pro"
+      ],
+      "version": null,
+      "service": "vllm_compat",
+      "confidence": 22,
+      "provider": "ucloud",
+      "region": "cn"
+    },
+    {
+      "ip": "156.254.6.9",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 4
+        },
+        "ollama_version": "0.31.1",
+        "openai_models": {
+          "model_count": 4
+        },
+        "openai_model_id": [
+          "qwen3-vl:30b",
+          "qwen3-vl:8b",
+          "gemma3:27b",
+          "gemma3:12b"
+        ]
+      },
+      "models": [
+        "qwen3-vl:30b",
+        "qwen3-vl:8b",
+        "gemma3:27b",
+        "gemma3:12b"
+      ],
+      "version": "0.31.1",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "ucloud",
+      "region": "cn"
+    },
+    {
+      "ip": "219.94.240.242",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 8
+        },
+        "ollama_version": "0.20.7",
+        "openai_models": {
+          "model_count": 8
+        },
+        "openai_model_id": [
+          "nomic-embed-text:latest",
+          "nomic-embed-text-v2-moe:latest",
+          "qwen3-embedding:0.6b",
+          "qwen3.6:27b",
+          "kimi-k2.7-code:cloud"
+        ]
+      },
+      "models": [
+        "nomic-embed-text:latest",
+        "nomic-embed-text-v2-moe:latest",
+        "qwen3-embedding:0.6b",
+        "qwen3.6:27b",
+        "kimi-k2.7-code:cloud",
+        "glm-5.2:cloud",
+        "deepseek-v4-pro:cloud",
+        "gemma3:4b"
+      ],
+      "version": "0.20.7",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "sakura_internet",
+      "region": "jp"
+    },
+    {
+      "ip": "49.212.157.177",
+      "port": 11434,
+      "score": 17,
+      "methods_hit": [
+        "port_hint",
+        "ollama_tags",
+        "ollama_version",
+        "openai_models",
+        "openai_model_id"
+      ],
+      "details": {
+        "port_hint": "ollama_11434",
+        "ollama_tags": {
+          "model_count": 2
+        },
+        "ollama_version": "0.3.12",
+        "openai_models": {
+          "model_count": 2
+        },
+        "openai_model_id": [
+          "llama3.1:8b",
+          "nomic-embed-text:latest"
+        ]
+      },
+      "models": [
+        "llama3.1:8b",
+        "nomic-embed-text:latest"
+      ],
+      "version": "0.3.12",
+      "service": "ollama",
+      "confidence": 46,
+      "provider": "sakura_internet",
+      "region": "jp"
+    },
+    {
+      "ip": "133.167.87.219",
+      "port": 8000,
+      "score": 5,
+      "methods_hit": [
+        "port_hint",
+        "piper_tts"
+      ],
+      "details": {
+        "port_hint": "generic_8000",
+        "piper_tts": true
+      },
+      "models": [],
+      "version": null,
+      "service": "piper_tts",
+      "confidence": 13,
+      "provider": "sakura_internet",
+      "region": "jp"
+    }
+  ]
+}

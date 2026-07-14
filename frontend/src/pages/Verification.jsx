@@ -12,6 +12,7 @@ import {
   HelpCircle,
   WifiOff,
   Filter,
+  Download,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -187,6 +188,49 @@ export default function Verification() {
       loadProgress()
     } catch (e) {
       toast('Failed to re-verify all: ' + e.message, 'error')
+    }
+  }
+
+  async function reverifyFiltered() {
+    const ok = await toastConfirm('Re-verify matches matching current filters (canary/math/consistency)?')
+    if (!ok) return
+    try {
+      const res = await api.post('/matches/reverify-filtered', {
+        provider: filters.provider || undefined,
+        service: filters.service || undefined,
+        verified_status: filters.verified_status || undefined,
+        canary: filters.canary || undefined,
+        math: filters.math || undefined,
+        consistency: filters.consistency || undefined,
+      })
+      toast(`Re-verify filtered queued for ${res.total.toLocaleString()} matches`)
+      loadProgress()
+    } catch (e) {
+      toast('Failed to re-verify filtered: ' + e.message, 'error')
+    }
+  }
+
+  async function exportFiltered() {
+    try {
+      const params = new URLSearchParams()
+      if (filters.provider) params.set('provider', filters.provider)
+      if (filters.service) params.set('service', filters.service)
+      if (filters.verified_status) params.set('verified_status', filters.verified_status)
+      if (filters.ip.trim()) params.set('ip', filters.ip.trim())
+      if (filters.canary) params.set('canary', filters.canary)
+      if (filters.math) params.set('math', filters.math)
+      if (filters.consistency) params.set('consistency', filters.consistency)
+      const res = await api.get(`/matches/export?${params.toString()}`)
+      const blob = new Blob([JSON.stringify(res.matches, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `matches_export_${Date.now()}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast(`Exported ${res.count.toLocaleString()} matches`)
+    } catch (e) {
+      toast('Export failed: ' + e.message, 'error')
     }
   }
 
@@ -394,11 +438,26 @@ export default function Verification() {
           Re-verify All
         </button>
         <button
+          onClick={reverifyFiltered}
+          disabled={isRunning}
+          className="inline-flex items-center px-3 py-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed border border-amber-500 rounded-lg text-sm font-medium transition-colors"
+        >
+          <RefreshCw className="w-4 h-4 mr-2" />
+          Re-verify Filtered
+        </button>
+        <button
           onClick={() => setBulkDeleteOpen(true)}
           className="inline-flex items-center px-3 py-2 bg-rose-600 hover:bg-rose-500 border border-rose-500 rounded-lg text-sm font-medium transition-colors"
         >
           <Trash2 className="w-4 h-4 mr-2" />
           Bulk Delete
+        </button>
+        <button
+          onClick={exportFiltered}
+          className="inline-flex items-center px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-sm font-medium transition-colors"
+        >
+          <Download className="w-4 h-4 mr-2" />
+          Export JSON
         </button>
       </div>
 

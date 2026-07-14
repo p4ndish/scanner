@@ -399,6 +399,155 @@ def reverify_all_matches(
     return {"queued": True, "total": total, "task_id": task.id}
 
 
+class ReverifyFilteredPayload(BaseModel):
+    provider: Optional[str] = None
+    service: Optional[str] = None
+    verified_status: Optional[str] = None
+    canary: Optional[str] = None
+    math: Optional[str] = None
+    consistency: Optional[str] = None
+
+
+@router.post("/reverify-filtered")
+def reverify_filtered(
+    payload: ReverifyFilteredPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Re-verify matches matching specific check result filters."""
+    from backend.app.tasks import verify_matches_task
+    from sqlalchemy import update
+    import redis
+    import json
+    import os
+
+    q = db.query(Match.id).join(ScanJob).filter(ScanJob.user_id == current_user.id)
+
+    if payload.provider:
+        q = q.filter(Match.provider == payload.provider)
+    if payload.service:
+        q = q.filter(Match.service == payload.service)
+    if payload.verified_status:
+        q = q.filter(Match.verified_status == payload.verified_status)
+    if payload.canary and payload.canary in ("pass", "fail"):
+        expected = "true" if payload.canary == "pass" else "false"
+        q = q.filter(cast(Match.verification_details["canary_pass"], String) == expected)
+    if payload.math and payload.math in ("pass", "fail"):
+        expected = "true" if payload.math == "pass" else "false"
+        q = q.filter(cast(Match.verification_details["math_pass"], String) == expected)
+    if payload.consistency and payload.consistency in ("pass", "fail"):
+        expected = "true" if payload.consistency == "pass" else "false"
+        q = q.filter(cast(Match.verification_details["consistency_pass"], String) == expected)
+
+    subq = q.subquery()
+    total = db.query(Match.id).filter(Match.id.in_(subq)).count()
+    if total == 0:
+        raise HTTPException(status_code=400, detail="No matches matching these filters")
+
+    stmt = update(Match).where(Match.id.in_(subq)).values(
+        verified_status="pending",
+        verified_at=None,
+        verification_details={},
+    )
+    db.execute(stmt)
+    db.commit()
+
+    r = redis.from_url(os.getenv("REDIS_URL", "redis://redis:6379/0"))
+    r.set(
+        f"verify:{current_user.id}:progress",
+        json.dumps({
+            "total": total, "done": 0, "legitimate": 0,
+            "honeypot": 0, "unreachable": 0, "state": "queued",
+        }),
+        ex=7200,
+    )
+
+    task = verify_matches_task.delay(
+        user_id=current_user.id,
+        filters={
+            "provider": payload.provider,
+            "service": payload.service,
+            "verified_status": payload.verified_status,
+            "canary": payload.canary,
+            "math": payload.math,
+            "consistency": payload.consistency,
+        },
+    )
+
+    return {"queued": True, "total": total, "task_id": task.id}
+
+
+@router.get("/export")
+def export_matches(
+    provider: Optional[str] = Query(None),
+    service: Optional[str] = Query(None),
+    verified_status: Optional[str] = Query(None),
+    canary: Optional[str] = Query(None),
+    math: Optional[str] = Query(None),
+    consistency: Optional[str] = Query(None),
+    ip: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Export filtered matches as JSON with ip, ip:port, models format."""
+    q = db.query(Match).join(ScanJob).filter(ScanJob.user_id == current_user.id)
+
+    if provider:
+        q = q.filter(Match.provider == provider)
+    if service:
+        q = q.filter(Match.service == service)
+    if verified_status:
+        q = q.filter(Match.verified_status == verified_status)
+    if ip and ip.strip():
+        ip_val = ip.strip()
+        if ':' in ip_val:
+            ip_addr, _, ip_port = ip_val.partition(':')
+            try:
+                q = q.filter(Match.ip == ip_addr, Match.port == int(ip_port))
+            except ValueError:
+                q = q.filter(Match.ip == ip_addr)
+        else:
+            q = q.filter(Match.ip == ip_val)
+    if canary and canary in ("pass", "fail"):
+        expected = "true" if canary == "pass" else "false"
+        q = q.filter(cast(Match.verification_details["canary_pass"], String) == expected)
+    if math and math in ("pass", "fail"):
+        expected = "true" if math == "pass" else "false"
+        q = q.filter(cast(Match.verification_details["math_pass"], String) == expected)
+    if consistency and consistency in ("pass", "fail"):
+        expected = "true" if consistency == "pass" else "false"
+        q = q.filter(cast(Match.verification_details["consistency_pass"], String) == expected)
+
+    matches = q.order_by(Match.score.desc()).all()
+
+    result = []
+    for m in matches:
+        models = []
+
+        vdetails = m.verification_details or {}
+        if isinstance(vdetails, dict) and vdetails.get("models_found"):
+            models = vdetails["models_found"]
+
+        if not models:
+            details = m.details_json or {}
+            if isinstance(details, dict):
+                if details.get("openai_model_id"):
+                    models = details["openai_model_id"]
+                elif details.get("ollama_tags"):
+                    models = []
+
+        result.append({
+            "ip": m.ip,
+            "ip:port": f"{m.ip}:{m.port}",
+            "port": m.port,
+            "service": m.service,
+            "verified_status": m.verified_status,
+            "models": models,
+        })
+
+    return {"count": len(result), "matches": result}
+
+
 class BulkDeletePayload(BaseModel):
     match_ids: Optional[List[int]] = None
     provider: Optional[str] = None

@@ -300,6 +300,30 @@ export default function Results() {
     }
   }
 
+  async function exportFiltered() {
+    try {
+      const params = new URLSearchParams()
+      if (filters.provider) params.set('provider', filters.provider)
+      if (filters.service) params.set('service', filters.service)
+      if (filters.verified_status) params.set('verified_status', filters.verified_status)
+      if (filters.ip.trim()) params.set('ip', filters.ip.trim())
+      if (filters.canary) params.set('canary', filters.canary)
+      if (filters.math) params.set('math', filters.math)
+      if (filters.consistency) params.set('consistency', filters.consistency)
+      const res = await api.get(`/matches/export?${params.toString()}`)
+      const blob = new Blob([JSON.stringify(res.matches, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `matches_export_${Date.now()}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast(`Exported ${res.count.toLocaleString()} matches`)
+    } catch (e) {
+      toast('Export failed: ' + e.message, 'error')
+    }
+  }
+
   async function previewBulkDelete() {
     const payload = {}
     if (bulkDeleteFilters.scope === 'provider') {
@@ -415,6 +439,13 @@ export default function Results() {
           >
             <Trash2 className="w-4 h-4 mr-2" />
             Bulk Delete
+          </button>
+          <button
+            onClick={exportFiltered}
+            className="inline-flex items-center px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-sm font-medium transition-colors"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Export JSON
           </button>
         </div>
       </div>
