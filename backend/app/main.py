@@ -4,18 +4,18 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.app.database import engine
-from backend.app.models import Base
+from backend.app.models import Base, init_db
 import os
 import multiprocessing
 
-from backend.app.api import auth, scans, matches
+from backend.app.api import auth, scans, matches, machines, proxies
 from backend.app.sse import router as sse_router
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: create tables
-    Base.metadata.create_all(bind=engine)
+    # Startup: create tables + apply lightweight migrations
+    init_db()
     yield
     # Shutdown: nothing special
 
@@ -38,6 +38,8 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api/auth")
 app.include_router(scans.router, prefix="/api")
 app.include_router(matches.router, prefix="/api")
+app.include_router(machines.router, prefix="/api")
+app.include_router(proxies.router, prefix="/api")
 app.include_router(sse_router, prefix="/api/scans")
 
 

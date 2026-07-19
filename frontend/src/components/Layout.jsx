@@ -8,12 +8,18 @@ import {
   LogOut,
   Radar,
   ShieldCheck,
+  Database,
+  Server,
+  Globe,
 } from 'lucide-react'
 
 const nav = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/scans/new', label: 'New Scan', icon: PlusCircle },
   { path: '/scans', label: 'Scans', icon: List },
+  { path: '/imports', label: 'Imports', icon: Database },
+  { path: '/machines', label: 'Machines', icon: Server },
+  { path: '/proxies', label: 'Proxies', icon: Globe },
   { path: '/results', label: 'Results', icon: Search },
   { path: '/verification', label: 'Verification', icon: ShieldCheck },
 ]

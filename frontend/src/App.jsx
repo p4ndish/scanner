@@ -8,6 +8,10 @@ import NewScan from './pages/NewScan'
 import ScanList from './pages/ScanList'
 import ScanDetail from './pages/ScanDetail'
 import Results from './pages/Results'
+import Imports from './pages/Imports'
+import ImportDetail from './pages/ImportDetail'
+import Machines from './pages/Machines'
+import Proxies from './pages/Proxies'
 import Verification from './pages/Verification'
 
 function PrivateRoute({ children }) {
@@ -31,6 +35,10 @@ function App() {
                 <Route path="/scans" element={<ScanList />} />
                 <Route path="/scans/:id" element={<ScanDetail />} />
                 <Route path="/results" element={<Results />} />
+                <Route path="/imports" element={<Imports />} />
+                <Route path="/imports/:id" element={<ImportDetail />} />
+                <Route path="/machines" element={<Machines />} />
+                <Route path="/proxies" element={<Proxies />} />
                 <Route path="/verification" element={<Verification />} />
               </Routes>
             </Layout>

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { api } from '../lib/api'
 import { useToast } from '../lib/toast'
+import { useDebouncedValue } from '../lib/useDebounce'
 import {
   ShieldCheck,
   Trash2,
@@ -13,6 +14,8 @@ import {
   WifiOff,
   Filter,
   Download,
+  Globe,
+  Square,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -40,13 +43,21 @@ export default function Verification() {
   const { toast, confirm: toastConfirm } = useToast()
   const [matches, setMatches] = useState([])
   const [pagination, setPagination] = useState({ total: 0, page: 1, per_page: 25, pages: 0 })
-  const [filters, setFilters] = useState({ provider: '', service: '', verified_status: '', ip: '', canary: '', math: '', consistency: '' })
+  const [filters, setFilters] = useState({ provider: '', service: '', verified_status: '', canary: '', math: '', consistency: '' })
+  const [ipInput, setIpInput] = useState('')
+  const debouncedIp = useDebouncedValue(ipInput, 400)
   const [providers, setProviders] = useState([])
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({ by_verified: {} })
   const [progress, setProgress] = useState(null)
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [useProxy, setUseProxy] = useState(false)
+  const [proxyCount, setProxyCount] = useState(0)
+
+  useEffect(() => {
+    api.get('/proxies').then((res) => setProxyCount((res || []).length)).catch(() => {})
+  }, [])
 
   const verifiedCounts = stats.by_verified || {}
   const pendingCount = verifiedCounts.pending || 0
@@ -54,17 +65,17 @@ export default function Verification() {
   const honeypotCount = verifiedCounts.honeypot || 0
   const unreachableCount = verifiedCounts.unreachable || 0
 
-  const load = useCallback(async (page = pagination.page, perPage = pagination.per_page) => {
-    setLoading(true)
+  const load = useCallback(async (page = pagination.page, perPage = pagination.per_page, f = filters, ip = debouncedIp, silent = false) => {
+    if (!silent) setLoading(true)
     try {
       const params = new URLSearchParams()
-      if (filters.provider) params.set('provider', filters.provider)
-      if (filters.service) params.set('service', filters.service)
-      if (filters.verified_status) params.set('verified_status', filters.verified_status)
-      if (filters.ip.trim()) params.set('ip', filters.ip.trim())
-      if (filters.canary) params.set('canary', filters.canary)
-      if (filters.math) params.set('math', filters.math)
-      if (filters.consistency) params.set('consistency', filters.consistency)
+      if (f.provider) params.set('provider', f.provider)
+      if (f.service) params.set('service', f.service)
+      if (f.verified_status) params.set('verified_status', f.verified_status)
+      if (ip.trim()) params.set('ip', ip.trim())
+      if (f.canary) params.set('canary', f.canary)
+      if (f.math) params.set('math', f.math)
+      if (f.consistency) params.set('consistency', f.consistency)
       params.set('page', String(page))
       params.set('per_page', String(perPage))
       const res = await api.get(`/matches?${params.toString()}`)
@@ -78,7 +89,7 @@ export default function Verification() {
     } catch (e) {
       console.error(e)
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }, [filters, pagination.page, pagination.per_page])
 
@@ -129,6 +140,16 @@ export default function Verification() {
     return () => clearInterval(interval)
   }, [loadProgress, loadStats])
 
+  // Auto-refresh the table (silently) while a verify runs or just finished, so
+  // re-verified statuses update live without a manual reload.
+  useEffect(() => {
+    const st = progress?.state
+    if (st === 'running' || st === 'queued' || st === 'completed' || st === 'cancelled') {
+      load(pagination.page, pagination.per_page, filters, debouncedIp, true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [progress?.done, progress?.state])
+
   function goToPage(page) {
     if (page < 1 || page > pagination.pages) return
     load(page, pagination.per_page)
@@ -161,6 +182,7 @@ export default function Verification() {
         provider: filters.provider || undefined,
         service: filters.service || undefined,
         verified_status: 'pending',
+        use_proxy: useProxy,
       })
       toast(`Verification queued for ${res.total.toLocaleString()} matches`)
       loadProgress()
@@ -169,9 +191,19 @@ export default function Verification() {
     }
   }
 
+  async function stopVerification() {
+    try {
+      await api.post('/matches/verify/cancel', {})
+      toast('Stop requested — verify will halt after the current chunk')
+      loadProgress()
+    } catch (e) {
+      toast('Failed to stop: ' + e.message, 'error')
+    }
+  }
+
   async function reverifyUnreachable() {
     try {
-      const res = await api.post('/matches/reverify', { all_unreachable: true })
+      const res = await api.post('/matches/reverify', { all_unreachable: true, use_proxy: useProxy })
       toast(`Re-verification queued for ${res.total.toLocaleString()} unreachable matches`)
       loadProgress()
     } catch (e) {
@@ -183,7 +215,7 @@ export default function Verification() {
     const ok = await toastConfirm('This will reset ALL verified matches back to pending and re-run verification with the improved logic.')
     if (!ok) return
     try {
-      const res = await api.post('/matches/reverify-all', {})
+      const res = await api.post('/matches/reverify-all', { use_proxy: useProxy })
       toast(`Re-verify all queued for ${res.total.toLocaleString()} matches`)
       loadProgress()
     } catch (e) {
@@ -202,6 +234,7 @@ export default function Verification() {
         canary: filters.canary || undefined,
         math: filters.math || undefined,
         consistency: filters.consistency || undefined,
+        use_proxy: useProxy,
       })
       toast(`Re-verify filtered queued for ${res.total.toLocaleString()} matches`)
       loadProgress()
@@ -389,17 +422,33 @@ export default function Verification() {
       </div>
 
       {/* Progress Bar */}
-      {isRunning && progress && (
+      {progress && (isRunning || progress.state === 'cancelled') && (
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-300">Verifying...</span>
-            <span className="text-sm text-slate-400">
-              {progress.done.toLocaleString()} / {progress.total.toLocaleString()} ({progressPct}%)
+            <span className="text-sm font-medium text-slate-300 flex items-center gap-2">
+              {progress.state === 'cancelled' ? 'Verification cancelled' : 'Verifying...'}
+              {progress.using_proxy && (
+                <span className="text-[10px] bg-cyan-500/10 text-cyan-400 px-1.5 py-0.5 rounded uppercase">via proxy</span>
+              )}
             </span>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-slate-400">
+                {progress.done.toLocaleString()} / {progress.total.toLocaleString()} ({progressPct}%)
+              </span>
+              {isRunning && (
+                <button
+                  onClick={stopVerification}
+                  className="inline-flex items-center px-2.5 py-1 bg-rose-600 hover:bg-rose-500 border border-rose-500 rounded-lg text-xs font-medium transition-colors"
+                >
+                  <Square className="w-3 h-3 mr-1" />
+                  Stop
+                </button>
+              )}
+            </div>
           </div>
           <div className="w-full bg-slate-800 rounded-full h-2">
             <div
-              className="bg-emerald-500 h-2 rounded-full transition-all duration-500"
+              className={progress.state === 'cancelled' ? 'bg-rose-500 h-2 rounded-full transition-all duration-500' : 'bg-emerald-500 h-2 rounded-full transition-all duration-500'}
               style={{ width: `${progressPct}%` }}
             />
           </div>
@@ -412,7 +461,20 @@ export default function Verification() {
       )}
 
       {/* Action Bar */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          onClick={() => setUseProxy((v) => !v)}
+          title={proxyCount === 0 ? 'Add proxies on the Proxies page first' : 'Route verification requests through your proxy pool'}
+          className={`inline-flex items-center px-3 py-2 border rounded-lg text-sm font-medium transition-colors ${
+            useProxy
+              ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400'
+              : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Globe className="w-4 h-4 mr-2" />
+          Use proxy {proxyCount > 0 && `(${proxyCount})`}
+          {useProxy && <span className="ml-1 text-[10px] uppercase">on</span>}
+        </button>
         <button
           onClick={startVerification}
           disabled={isRunning || pendingCount === 0}

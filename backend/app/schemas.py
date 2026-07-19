@@ -43,8 +43,10 @@ class ScanJobCreate(BaseModel):
     rate: int = 2500
     workers: int = 1
     parallel: int = 4
+    retry: int = 1
     score_threshold: int = 5
     full_sweep: Optional[str] = None
+    machine_id: Optional[int] = None
 
 
 class ScanJobOut(BaseModel):
@@ -59,8 +61,10 @@ class ScanJobOut(BaseModel):
     rate: int
     workers: int
     parallel: int
+    retry: int = 1
     score_threshold: int
     full_sweep: Optional[str]
+    machine_id: Optional[int] = None
     stats_json: Optional[dict]
     error_message: Optional[str]
     started_at: Optional[datetime]
@@ -130,6 +134,70 @@ class ScanLogOut(BaseModel):
     scan_job_id: int
     phase: Optional[str]
     message: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ─── Scan Machines (remote SSH workers) ───
+
+class ScanMachineCreate(BaseModel):
+    name: str
+    host: str
+    port: int = 22
+    username: str = "root"
+    auth_type: str = "key"  # key | password
+    secret: str  # private key text or password (encrypted at rest, never returned)
+    use_sudo: bool = False
+
+
+class ScanMachineUpdate(BaseModel):
+    name: Optional[str] = None
+    host: Optional[str] = None
+    port: Optional[int] = None
+    username: Optional[str] = None
+    auth_type: Optional[str] = None
+    secret: Optional[str] = None  # if omitted, existing secret is kept
+    use_sudo: Optional[bool] = None
+
+
+class ScanMachineOut(BaseModel):
+    id: int
+    name: str
+    host: str
+    port: int
+    username: str
+    auth_type: str
+    use_sudo: bool
+    last_tested_at: Optional[datetime] = None
+    last_test_ok: Optional[bool] = None
+    last_test_message: Optional[str] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ─── Proxy Configs (for verification routing) ───
+
+class ProxyConfigCreate(BaseModel):
+    name: str
+    scheme: str = "http"  # http | https | socks5 | socks5h
+    host: str
+    port: int
+    username: Optional[str] = None
+    password: Optional[str] = None  # encrypted at rest, never returned
+
+
+class ProxyConfigOut(BaseModel):
+    id: int
+    name: str
+    scheme: str
+    host: str
+    port: int
+    username: Optional[str] = None
+    last_tested_at: Optional[datetime] = None
+    last_test_ok: Optional[bool] = None
+    last_test_message: Optional[str] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

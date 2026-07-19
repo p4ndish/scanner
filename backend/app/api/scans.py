@@ -27,6 +27,10 @@ def create_scan(
     if not data.target_ip and (not data.providers or len(data.providers) == 0):
         raise HTTPException(status_code=422, detail="Select at least one provider or provide a target_ip")
 
+    # Remote machines only support provider scans (CLI has no single-IP mode)
+    if data.machine_id and data.target_ip:
+        raise HTTPException(status_code=422, detail="Remote machines support provider scans only (not single-IP)")
+
     # Default ports
     default_ports = ["4096", "3000", "8080"] if not data.llm_mode else ["11434", "8080", "8000", "1234", "5000", "5001", "7860", "8888", "3001"]
     ports = data.ports or default_ports
@@ -41,8 +45,10 @@ def create_scan(
         rate=data.rate,
         workers=data.workers,
         parallel=data.parallel,
+        retry=data.retry,
         score_threshold=data.score_threshold,
         full_sweep=data.full_sweep,
+        machine_id=data.machine_id,
         status="queued",
     )
     db.add(job)

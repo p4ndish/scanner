@@ -32,18 +32,21 @@ async def event_generator(scan_id: int):
     pubsub = r.pubsub()
     pubsub.subscribe(f"scan:{scan_id}:events")
 
-    # Send any cached state immediately
     cached = r.get(f"scan:{scan_id}:state")
     if cached:
         yield f"data: {cached.decode()}\n\n"
 
     try:
         while True:
-            message = pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+            message = await asyncio.to_thread(
+                pubsub.get_message,
+                ignore_subscribe_messages=True,
+                timeout=0.5,
+            )
             if message and message["type"] == "message":
                 payload = message["data"].decode()
                 yield f"data: {payload}\n\n"
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.2)
     finally:
         pubsub.unsubscribe()
         pubsub.close()

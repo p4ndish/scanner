@@ -24,3 +24,9 @@ redis>=5.0.0
 pydantic>=2.6.0
 python-dotenv>=1.0.0
 requests>=2.31.0
+
+# SSH remote scan execution
+paramiko>=3.4.0
+
+# SOCKS proxy support for verification routing
+PySocks>=1.7.1

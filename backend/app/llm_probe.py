@@ -12,10 +12,61 @@ v3 improvements:
 """
 import re
 import socket
+import threading
 import requests
 
 
 MAX_TOKENS = 200
+
+# ── Proxy pool (round-robin, thread-safe) ──
+# Set by verify_matches_task when "use proxy" is enabled. Each request picks the
+# next proxy in rotation, distributing load across the pool.
+_PROXY_POOL = None  # list[str] of proxy URLs, or None
+_proxy_idx = 0
+_proxy_lock = threading.Lock()
+
+
+def set_proxy_pool(proxy_urls):
+    """Activate a proxy pool. proxy_urls: list of full proxy URL strings, or None/[] to disable."""
+    global _PROXY_POOL, _proxy_idx
+    _PROXY_POOL = list(proxy_urls) if proxy_urls else None
+    _proxy_idx = 0
+
+
+def clear_proxy_pool():
+    global _PROXY_POOL
+    _PROXY_POOL = None
+
+
+def proxy_pool_active():
+    return bool(_PROXY_POOL)
+
+
+def _next_proxies():
+    """Return a requests-style proxies dict, round-robining across the pool.
+    Returns None when no pool is active (requests then connects directly)."""
+    global _proxy_idx
+    if not _PROXY_POOL:
+        return None
+    with _proxy_lock:
+        url = _PROXY_POOL[_proxy_idx % len(_PROXY_POOL)]
+        _proxy_idx += 1
+    return {"http": url, "https": url}
+
+
+# Bound originals so wrapper call sites can be swapped wholesale below.
+_GET = requests.get
+_POST = requests.post
+
+
+def _rget(url, **kwargs):
+    kwargs.setdefault("proxies", _next_proxies())
+    return _GET(url, **kwargs)
+
+
+def _rpost(url, **kwargs):
+    kwargs.setdefault("proxies", _next_proxies())
+    return _POST(url, **kwargs)
 
 # ── Model type patterns ──
 EMBEDDING_PATTERNS = [
@@ -89,7 +140,7 @@ def discover_models(base_url: str, timeout: float = 5) -> tuple[list[str], str]:
         return str(val).strip()
 
     try:
-        r = requests.get(f"{base_url}/v1/models", timeout=timeout)
+        r = _rget(f"{base_url}/v1/models", timeout=timeout)
         if r.status_code == 200:
             data = _safe_json(r)
             if isinstance(data, dict) and "data" in data:
@@ -101,7 +152,7 @@ def discover_models(base_url: str, timeout: float = 5) -> tuple[list[str], str]:
         pass
 
     try:
-        r = requests.get(f"{base_url}/api/tags", timeout=timeout)
+        r = _rget(f"{base_url}/api/tags", timeout=timeout)
         if r.status_code == 200:
             data = _safe_json(r)
             if isinstance(data, dict) and "models" in data:
@@ -113,7 +164,7 @@ def discover_models(base_url: str, timeout: float = 5) -> tuple[list[str], str]:
         pass
 
     try:
-        r = requests.get(f"{base_url}/api/v1/model", timeout=timeout)
+        r = _rget(f"{base_url}/api/v1/model", timeout=timeout)
         if r.status_code == 200:
             data = _safe_json(r)
             if isinstance(data, dict) and "result" in data:
@@ -130,7 +181,7 @@ def discover_models(base_url: str, timeout: float = 5) -> tuple[list[str], str]:
 
 def _probe_chat_completions(base_url: str, prompt: str, model: str, timeout: float):
     try:
-        r = requests.post(
+        r = _rpost(
             f"{base_url}/v1/chat/completions",
             json={
                 "model": model,
@@ -154,7 +205,7 @@ def _probe_chat_completions(base_url: str, prompt: str, model: str, timeout: flo
 
 def _probe_ollama_chat(base_url: str, prompt: str, model: str, timeout: float):
     try:
-        r = requests.post(
+        r = _rpost(
             f"{base_url}/api/chat",
             json={
                 "model": model,
@@ -176,7 +227,7 @@ def _probe_ollama_chat(base_url: str, prompt: str, model: str, timeout: float):
 
 def _probe_ollama_generate(base_url: str, prompt: str, model: str, timeout: float):
     try:
-        r = requests.post(
+        r = _rpost(
             f"{base_url}/api/generate",
             json={"model": model, "prompt": prompt, "stream": False},
             timeout=timeout,
@@ -191,7 +242,7 @@ def _probe_ollama_generate(base_url: str, prompt: str, model: str, timeout: floa
 
 def _probe_kobold_generate(base_url: str, prompt: str, timeout: float):
     try:
-        r = requests.post(
+        r = _rpost(
             f"{base_url}/api/v1/generate",
             json={"prompt": prompt, "max_length": MAX_TOKENS},
             timeout=timeout,
@@ -207,7 +258,7 @@ def _probe_kobold_generate(base_url: str, prompt: str, timeout: float):
 
 def _probe_openai_completions(base_url: str, prompt: str, model: str, timeout: float):
     try:
-        r = requests.post(
+        r = _rpost(
             f"{base_url}/v1/completions",
             json={"model": model, "prompt": prompt, "max_tokens": MAX_TOKENS},
             timeout=timeout,
@@ -241,7 +292,7 @@ def probe_with_model(base_url: str, prompt: str, model: str, timeout: float = 5)
 def verify_embeddings(base_url: str, model: str, timeout: float = 10):
     """Test an embeddings endpoint by sending a simple embedding request."""
     try:
-        r = requests.post(
+        r = _rpost(
             f"{base_url}/v1/embeddings",
             json={"input": "test", "model": model},
             timeout=timeout,
@@ -263,7 +314,7 @@ def verify_embeddings(base_url: str, model: str, timeout: float = 10):
 def verify_image(base_url: str, model: str, timeout: float = 30):
     """Test an image generation endpoint."""
     try:
-        r = requests.post(
+        r = _rpost(
             f"{base_url}/v1/images/generations",
             json={"prompt": "a circle", "model": model, "n": 1, "size": "256x256", "response_format": "b64_json"},
             timeout=timeout,
@@ -284,7 +335,7 @@ def verify_image(base_url: str, model: str, timeout: float = 30):
 def verify_audio(base_url: str, model: str, timeout: float = 15):
     """Test a TTS endpoint."""
     try:
-        r = requests.post(
+        r = _rpost(
             f"{base_url}/v1/audio/speech",
             json={"input": "hello", "model": model, "voice": "alloy"},
             timeout=timeout,
@@ -371,8 +422,9 @@ def verify_endpoint(ip: str, port: int, scheme: str = "http", timeout: float = 5
     """
     base_url = f"{scheme}://{ip}:{port}"
 
-    # 1. TCP pre-check
-    if not _tcp_connect(ip, port, timeout=2.0):
+    # 1. TCP pre-check (skipped when proxying — the proxy does the connecting,
+    #    and the worker may not be able to reach the target directly)
+    if not proxy_pool_active() and not _tcp_connect(ip, port, timeout=2.0):
         return "unreachable", {
             "error": "tcp_connect_failed",
             "models_found": [],
@@ -466,7 +518,7 @@ def verify_endpoint(ip: str, port: int, scheme: str = "http", timeout: float = 5
 
 def list_models_openai(base_url: str, timeout: float = 5):
     try:
-        r = requests.get(f"{base_url}/v1/models", timeout=timeout)
+        r = _rget(f"{base_url}/v1/models", timeout=timeout)
         if r.status_code == 200:
             data = _safe_json(r)
             models = []
@@ -485,7 +537,7 @@ def list_models_openai(base_url: str, timeout: float = 5):
 
 def list_models_ollama(base_url: str, timeout: float = 5):
     try:
-        r = requests.get(f"{base_url}/api/tags", timeout=timeout)
+        r = _rget(f"{base_url}/api/tags", timeout=timeout)
         if r.status_code == 200:
             data = _safe_json(r)
             models = []
@@ -507,7 +559,7 @@ def list_models_ollama(base_url: str, timeout: float = 5):
 
 def list_models_kobold(base_url: str, timeout: float = 5):
     try:
-        r = requests.get(f"{base_url}/api/v1/model", timeout=timeout)
+        r = _rget(f"{base_url}/api/v1/model", timeout=timeout)
         if r.status_code == 200:
             data = _safe_json(r)
             model_name = data.get("result", "unknown")

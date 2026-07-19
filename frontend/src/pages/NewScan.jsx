@@ -35,6 +35,7 @@ export default function NewScan() {
   const [rate, setRate] = useState(5000)
   const [workers, setWorkers] = useState(8)
   const [parallel, setParallel] = useState(4)
+  const [retry, setRetry] = useState(1)
   const [scoreThreshold, setScoreThreshold] = useState(5)
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -48,6 +49,10 @@ export default function NewScan() {
 
   // System recommendations
   const [sysInfo, setSysInfo] = useState(null)
+
+  // Remote machines
+  const [machines, setMachines] = useState([])
+  const [selectedMachineId, setSelectedMachineId] = useState(null) // null = local
 
   useEffect(() => {
     api.get('/system/info')
@@ -64,6 +69,7 @@ export default function NewScan() {
       .catch(() => {
         // ignore
       })
+    api.get('/machines').then(setMachines).catch(() => {})
   }, [])
 
   // Update defaults when scan type changes
@@ -144,8 +150,10 @@ export default function NewScan() {
         rate,
         workers,
         parallel,
+        retry,
         score_threshold: scoreThreshold,
         full_sweep: fullSweep.trim() || null,
+        machine_id: scanType === 'cloud' && selectedMachineId ? Number(selectedMachineId) : null,
       }
 
       const res = await api.post('/scans', payload)
@@ -198,6 +206,33 @@ export default function NewScan() {
             </button>
           </div>
         </div>
+
+        {/* Run-on machine selector (cloud scans only — CLI has no single-IP mode) */}
+        {scanType === 'cloud' && (
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+            <label className="block text-sm font-medium text-slate-300 mb-1">Run on</label>
+            <p className="text-xs text-slate-500 mb-3">
+              Local = run on this server. Pick a remote machine to scan from a different source IP.
+            </p>
+            <select
+              value={selectedMachineId || ''}
+              onChange={(e) => setSelectedMachineId(e.target.value ? Number(e.target.value) : null)}
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+            >
+              <option value="">Local machine (this server)</option>
+              {machines.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name} ({m.username}@{m.host}){m.last_test_ok === false ? ' — untested/failed' : ''}
+                </option>
+              ))}
+            </select>
+            {machines.length === 0 && (
+              <p className="text-xs text-slate-600 mt-2">
+                No remote machines registered. Add one under the Machines page.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Name */}
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
@@ -376,6 +411,12 @@ export default function NewScan() {
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">Score threshold</label>
                 <input type="number" value={scoreThreshold} onChange={(e) => setScoreThreshold(Number(e.target.value))} className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1">
+                  Retries on empty batches <span className="text-slate-600">(lower = faster on sparse ranges like AWS)</span>
+                </label>
+                <input type="number" min={0} max={3} value={retry} onChange={(e) => setRetry(Number(e.target.value))} className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" />
               </div>
             </div>
           )}

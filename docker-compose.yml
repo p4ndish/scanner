@@ -1,24 +1,26 @@
 services:
   db:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: scanner
-      POSTGRES_PASSWORD: scannerpass
-      POSTGRES_DB: opencode_scanner
+      POSTGRES_USER: ${POSTGRES_USER:-scanner}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-scannerpass}
+      POSTGRES_DB: ${POSTGRES_DB:-opencode_scanner}
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U scanner -d opencode_scanner"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-scanner} -d ${POSTGRES_DB:-opencode_scanner}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -27,16 +29,18 @@ services:
 
   web:
     build: .
-    command: uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
+    command: uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --workers 2
     volumes:
       - .:/app
       - results_data:/app/results
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     environment:
-      - DATABASE_URL=postgresql+psycopg2://scanner:scannerpass@db:5432/opencode_scanner
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-scanner}:${POSTGRES_PASSWORD:-scannerpass}@db:5432/${POSTGRES_DB:-opencode_scanner}
       - REDIS_URL=redis://redis:6379/0
-      - SECRET_KEY=change-me-in-production-very-secret-key-2026
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production-very-secret-key-2026}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-change-me-fernet-key-2026}
       - PYTHONPATH=/app
     depends_on:
       db:
@@ -46,14 +50,16 @@ services:
 
   worker:
     build: .
+    restart: unless-stopped
     command: celery -A backend.app.worker.celery_app worker --loglevel=info --concurrency=1
     volumes:
       - .:/app
       - results_data:/app/results
     environment:
-      - DATABASE_URL=postgresql+psycopg2://scanner:scannerpass@db:5432/opencode_scanner
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-scanner}:${POSTGRES_PASSWORD:-scannerpass}@db:5432/${POSTGRES_DB:-opencode_scanner}
       - REDIS_URL=redis://redis:6379/0
-      - SECRET_KEY=change-me-in-production-very-secret-key-2026
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production-very-secret-key-2026}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-change-me-fernet-key-2026}
       - PYTHONPATH=/app
     depends_on:
       db:
@@ -68,9 +74,9 @@ services:
 
   nginx:
     image: nginx:alpine
+    restart: unless-stopped
     ports:
-      - "80:80"
-      - "8088:80"
+      - "${WEB_PORT:-12211}:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./frontend/dist:/usr/share/nginx/html:ro

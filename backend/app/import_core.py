@@ -14,7 +14,7 @@ from backend.app.models import ScanJob, Match
 from backend.app.streaming_json import stream_matches_from_file
 
 
-def fast_import_results(filepath: str, user_id: int = 1, batch_size: int = 50000, db_session=None):
+def fast_import_results(filepath: str, user_id: int = 1, batch_size: int = 50000, db_session=None, name: str = None):
     """
     Import a results.json file into PostgreSQL using COPY.
     Skips duplicates: any (ip, port) already owned by this user is ignored.
@@ -24,6 +24,9 @@ def fast_import_results(filepath: str, user_id: int = 1, batch_size: int = 50000
 
     If db_session is provided, uses it for the ScanJob creation (web mode).
     Otherwise creates its own session (CLI mode).
+
+    If name is provided, it is used as the ScanJob name; otherwise an
+    auto-generated "Import {timestamp}" name is used.
     """
     filepath = Path(filepath)
     if not filepath.exists():
@@ -83,7 +86,7 @@ def fast_import_results(filepath: str, user_id: int = 1, batch_size: int = 50000
     now = datetime.now(timezone.utc)
     job = ScanJob(
         user_id=user_id,
-        name=f"Import {now.strftime('%Y-%m-%d %H:%M')}",
+        name=name.strip() if name and name.strip() else f"Import {now.strftime('%Y-%m-%d %H:%M')}",
         status="completed",
         providers=["cli_import"],
         ports=list(ports_seen) or ["0"],
@@ -167,3 +170,88 @@ def fast_import_results(filepath: str, user_id: int = 1, batch_size: int = 50000
         db.close()
 
     return imported, skipped, job.id
+
+
+def import_into_existing_job(filepath, scan_job_id, db_session, batch_size=50000):
+    """Load a results.json file into an EXISTING ScanJob (e.g. a remote SSH scan).
+
+    Unlike fast_import_results, this does NOT create a new ScanJob and only
+    deduplicates within the file (cross-scan duplicates are kept, since a remote
+    scan from a different vantage point may legitimately re-find the same host).
+
+    Returns (imported_count, skipped_count).
+    """
+    from backend.app.models import ScanJob
+    filepath = Path(filepath)
+    if not filepath.exists():
+        raise FileNotFoundError(f"File not found: {filepath}")
+
+    db = db_session
+    job = db.query(ScanJob).filter(ScanJob.id == scan_job_id).first()
+    if not job:
+        raise ValueError(f"ScanJob {scan_job_id} not found")
+
+    now = datetime.now(timezone.utc)
+    raw_conn = db.connection().connection
+    cursor = raw_conn.cursor()
+
+    imported = 0
+    skipped = 0
+    seen = set()  # intra-file dedup only
+    buf = io.StringIO()
+    writer = csv.writer(buf, delimiter='\t', quoting=csv.QUOTE_NONE, escapechar='\\')
+
+    for m in stream_matches_from_file(str(filepath)):
+        ip = m.get("ip", "unknown")
+        port = m.get("port", 0)
+        key = (ip, port)
+        if key in seen:
+            skipped += 1
+            continue
+        seen.add(key)
+
+        writer.writerow([
+            scan_job_id,
+            ip,
+            port,
+            m.get("scheme", "http"),
+            m.get("score", 0),
+            m.get("service", "unknown"),
+            m.get("provider", ""),
+            m.get("region", ""),
+            json.dumps(m.get("methods_hit", [])),
+            json.dumps(m.get("details", {})),
+            now.isoformat(),
+        ])
+        imported += 1
+
+        if imported % batch_size == 0:
+            buf.seek(0)
+            cursor.copy_from(
+                buf, "matches",
+                columns=("scan_job_id", "ip", "port", "scheme", "score", "service", "provider", "region", "methods_hit", "details_json", "created_at"),
+                sep='\t', null='',
+            )
+            raw_conn.commit()
+            buf = io.StringIO()
+            writer = csv.writer(buf, delimiter='\t', quoting=csv.QUOTE_NONE, escapechar='\\')
+
+    if buf.tell() > 0:
+        buf.seek(0)
+        cursor.copy_from(
+            buf, "matches",
+            columns=("scan_job_id", "ip", "port", "scheme", "score", "service", "provider", "region", "methods_hit", "details_json", "created_at"),
+            sep='\t', null='',
+        )
+        raw_conn.commit()
+
+    cursor.close()
+
+    # Merge counts into the job's stats
+    stats = dict(job.stats_json or {})
+    stats["matches_found"] = imported
+    stats["duplicates_skipped"] = skipped
+    job.stats_json = stats
+    db.commit()
+
+    return imported, skipped

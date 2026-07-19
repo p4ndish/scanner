@@ -29,6 +29,7 @@ def main():
     )
     parser.add_argument("file", help="Path to results.json")
     parser.add_argument("--user-id", type=int, default=1, help="User ID to own the import (default: 1)")
+    parser.add_argument("--name", default=None, help="Label for this import batch (default: auto 'Import {timestamp}')")
     parser.add_argument("--batch-size", type=int, default=50000, help="COPY batch size (default: 50000)")
     args = parser.parse_args()
 
@@ -38,7 +39,7 @@ def main():
     print("Importing via PostgreSQL COPY...")
 
     t0 = time.time()
-    imported, skipped, job_id = fast_import_results(str(filepath), user_id=args.user_id, batch_size=args.batch_size)
+    imported, skipped, job_id = fast_import_results(str(filepath), user_id=args.user_id, batch_size=args.batch_size, name=args.name)
     elapsed = time.time() - t0
 
     print(f"\nDone! Imported {imported:,} matches in {elapsed:.1f}s ({imported/elapsed:,.0f}/sec)")

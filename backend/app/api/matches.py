@@ -1,8 +1,8 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
 from pydantic import BaseModel
-from sqlalchemy import func, String, cast
+from sqlalchemy import func, String, cast, text
 from sqlalchemy.orm import Session
 
 from backend.app.auth import get_current_active_user
@@ -12,6 +12,12 @@ from backend.app.schemas import MatchOut
 from sqlalchemy.orm import joinedload
 
 router = APIRouter(prefix="/matches", tags=["matches"])
+
+
+def _vkey(user_id: int, scan_id=None) -> str:
+    """Redis key for verification progress, scoped per import when scan_id given."""
+    scope = f"scan_{scan_id}" if scan_id else "all"
+    return f"verify:{user_id}:{scope}:progress"
 
 
 @router.get("")
@@ -96,43 +102,78 @@ def match_stats(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
+    import os, json, time, redis as _redis
+
+    cache_key = f"stats:{current_user.id}"
+    lock_key = f"stats:{current_user.id}:lock"
+    r = _redis.from_url(os.getenv("REDIS_URL", "redis://redis:6379/0"))
+
+    cached = r.get(cache_key)
+    if cached:
+        return json.loads(cached)
+
+    if not r.set(lock_key, "1", nx=True, ex=40):
+        for _ in range(5):
+            time.sleep(1)
+            cached = r.get(cache_key)
+            if cached:
+                return json.loads(cached)
+        return {"by_provider": [], "by_mode": {"opencode": 0, "llm": 0}, "by_verified": {}}
+
     from sqlalchemy import func
 
-    # Provider breakdown
-    provider_q = (
-        db.query(Match.provider, func.count(Match.id).label("count"))
-        .join(ScanJob)
-        .filter(ScanJob.user_id == current_user.id)
-        .group_by(Match.provider)
-        .all()
-    )
+    try:
+        db.execute(text("SET LOCAL statement_timeout = '30s'"))
 
-    # Mode breakdown (opencode vs LLM)
-    mode_q = (
-        db.query(ScanJob.llm_mode, func.count(Match.id).label("count"))
-        .join(ScanJob)
-        .filter(ScanJob.user_id == current_user.id)
-        .group_by(ScanJob.llm_mode)
-        .all()
-    )
+        provider_q = (
+            db.query(Match.provider, func.count(Match.id).label("count"))
+            .join(ScanJob)
+            .filter(ScanJob.user_id == current_user.id)
+            .group_by(Match.provider)
+            .all()
+        )
 
-    # Verification breakdown
-    verify_q = (
-        db.query(Match.verified_status, func.count(Match.id).label("count"))
-        .join(ScanJob)
-        .filter(ScanJob.user_id == current_user.id)
-        .group_by(Match.verified_status)
-        .all()
-    )
+        mode_q = (
+            db.query(ScanJob.llm_mode, func.count(Match.id).label("count"))
+            .join(ScanJob)
+            .filter(ScanJob.user_id == current_user.id)
+            .group_by(ScanJob.llm_mode)
+            .all()
+        )
 
-    return {
-        "by_provider": [{"provider": p or "unknown", "count": c} for p, c in provider_q],
-        "by_mode": {
-            "opencode": sum(c for mode, c in mode_q if not mode),
-            "llm": sum(c for mode, c in mode_q if mode),
-        },
-        "by_verified": {status: c for status, c in verify_q},
-    }
+        verify_q = (
+            db.query(Match.verified_status, func.count(Match.id).label("count"))
+            .join(ScanJob)
+            .filter(ScanJob.user_id == current_user.id)
+            .group_by(Match.verified_status)
+            .all()
+        )
+
+        result = {
+            "by_provider": [{"provider": p or "unknown", "count": c} for p, c in provider_q],
+            "by_mode": {
+                "opencode": sum(c for mode, c in mode_q if not mode),
+                "llm": sum(c for mode, c in mode_q if mode),
+            },
+            "by_verified": {status: c for status, c in verify_q},
+        }
+
+        r.setex(cache_key, 60, json.dumps(result))
+        return result
+    except Exception:
+        db.rollback()
+        approx = db.execute(text(
+            "SELECT verified_status, count(*) FROM matches GROUP BY verified_status"
+        )).fetchall()
+        result = {
+            "by_provider": [],
+            "by_mode": {"opencode": 0, "llm": 0},
+            "by_verified": {row[0] or "pending": row[1] for row in approx},
+        }
+        r.setex(cache_key, 10, json.dumps(result))
+        return result
+    finally:
+        r.delete(lock_key)
 
 
 @router.get("/providers")
@@ -153,15 +194,56 @@ def list_providers(
     return {"providers": providers}
 
 
+@router.get("/imports")
+def list_imports(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """List all CLI-imported result batches for the current user.
+
+    Each batch is a ScanJob whose providers contain 'cli_import'. Returns
+    id, name, host count, mode, and import stats so the UI can render an
+    Imports list page.
+    """
+    jobs = (
+        db.query(ScanJob, func.count(Match.id).label("match_count"))
+        .outerjoin(Match, Match.scan_job_id == ScanJob.id)
+        .filter(
+            ScanJob.user_id == current_user.id,
+            cast(ScanJob.providers, String).like('%"cli_import"%'),
+        )
+        .group_by(ScanJob.id)
+        .order_by(ScanJob.created_at.desc())
+        .all()
+    )
+
+    out = []
+    for job, match_count in jobs:
+        stats = job.stats_json or {}
+        out.append({
+            "id": job.id,
+            "name": job.name,
+            "llm_mode": job.llm_mode,
+            "match_count": match_count,
+            "imported": stats.get("matches_found", match_count),
+            "skipped": stats.get("duplicates_skipped", 0),
+            "ports": job.ports or [],
+            "created_at": job.created_at.isoformat() if job.created_at else None,
+        })
+    return {"imports": out, "total": len(out)}
+
+
 @router.post("/import")
 def import_cli_results(
     file: UploadFile = File(...),
+    name: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
     """Import results from a CLI scanner results.json file into the web database.
 
     Supports huge files (500MB+) via streaming parse + PostgreSQL COPY.
+    An optional name can be provided to label this import batch.
     """
     import tempfile
     import os
@@ -181,7 +263,7 @@ def import_cli_results(
                 tmp.write(chunk)
             tmp_path = tmp.name
 
-        imported, skipped, job_id = fast_import_results(tmp_path, user_id=current_user.id, batch_size=50000, db_session=db)
+        imported, skipped, job_id = fast_import_results(tmp_path, user_id=current_user.id, batch_size=50000, db_session=db, name=name)
         return {"imported": imported, "skipped": skipped, "scan_job_id": job_id}
 
     except ValueError as e:
@@ -201,6 +283,7 @@ class VerifyPayload(BaseModel):
     service: Optional[str] = None
     scan_id: Optional[int] = None
     verified_status: Optional[str] = None  # e.g. "pending" or "unreachable"
+    use_proxy: bool = False
 
 
 @router.post("/verify")
@@ -236,7 +319,7 @@ def start_verification(
     # Set initial progress in Redis
     r = redis.from_url(os.getenv("REDIS_URL", "redis://redis:6379/0"))
     r.set(
-        f"verify:{current_user.id}:progress",
+        _vkey(current_user.id, payload.scan_id),
         json.dumps({
             "total": total,
             "done": 0,
@@ -257,30 +340,68 @@ def start_verification(
             "scan_id": payload.scan_id,
             "verified_status": payload.verified_status,
         },
+        use_proxy=payload.use_proxy,
     )
 
     return {"queued": True, "total": total, "task_id": task.id}
 
 
-@router.get("/verification-status")
-def verification_status(
+@router.post("/verify/cancel")
+def cancel_verification(
     current_user: User = Depends(get_current_active_user),
 ):
-    """Poll the current verification progress."""
+    """Stop the currently-running verification (any scope) for this user.
+
+    Sets a Redis flag that the verify task checks between chunks; it exits
+    cleanly after finishing the current chunk. State becomes "cancelled".
+    """
+    import redis
+    import os
+    r = redis.from_url(os.getenv("REDIS_URL", "redis://redis:6379/0"))
+    r.setex(f"verify:{current_user.id}:cancel", 3600, "1")
+    return {"ok": True, "message": "Cancellation requested — verify will stop after the current chunk"}
+
+
+@router.get("/verification-status")
+def verification_status(
+    scan_id: Optional[int] = Query(None),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Poll verification progress.
+
+    If scan_id is given, returns that import's scoped progress under `progress`
+    plus any global verify progress under `global_progress` (so an import page
+    can note when a global verify is also running). Without scan_id, returns
+    the global progress under `progress`.
+    """
     import redis
     import json
     import os
 
     r = redis.from_url(os.getenv("REDIS_URL", "redis://redis:6379/0"))
-    raw = r.get(f"verify:{current_user.id}:progress")
-    if not raw:
-        return {"state": "idle", "total": 0, "done": 0}
-    return json.loads(raw)
+    uid = current_user.id
+
+    def _read(key):
+        raw = r.get(key)
+        return json.loads(raw) if raw else {"state": "idle", "total": 0, "done": 0}
+
+    if scan_id:
+        scoped = _read(f"verify:{uid}:scan_{scan_id}:progress")
+        glob = _read(f"verify:{uid}:all:progress")
+        scoped["scope"] = "scan"
+        return {
+            "progress": scoped,
+            "global_progress": glob,
+        }
+
+    return _read(f"verify:{uid}:all:progress")
 
 
 class ReverifyPayload(BaseModel):
     match_ids: Optional[List[int]] = None
     all_unreachable: bool = False
+    scan_id: Optional[int] = None
+    use_proxy: bool = False
 
 
 @router.post("/reverify")
@@ -302,6 +423,8 @@ def reverify_matches(
         ScanJob.user_id == current_user.id,
     )
 
+    if payload.scan_id:
+        q = q.filter(Match.scan_job_id == payload.scan_id)
     if payload.all_unreachable:
         q = q.filter(Match.verified_status == "unreachable")
     elif payload.match_ids:
@@ -322,7 +445,7 @@ def reverify_matches(
     # Set progress in Redis
     r = redis.from_url(os.getenv("REDIS_URL", "redis://redis:6379/0"))
     r.set(
-        f"verify:{current_user.id}:progress",
+        _vkey(current_user.id, payload.scan_id),
         json.dumps({
             "total": total,
             "done": 0,
@@ -336,14 +459,20 @@ def reverify_matches(
 
     task = verify_matches_task.delay(
         user_id=current_user.id,
-        filters={"match_ids": payload.match_ids, "all_unreachable": payload.all_unreachable},
+        filters={"match_ids": payload.match_ids, "all_unreachable": payload.all_unreachable, "scan_id": payload.scan_id},
+        use_proxy=payload.use_proxy,
     )
 
     return {"queued": True, "total": total, "task_id": task.id}
 
 
+class ReverifyAllPayload(BaseModel):
+    use_proxy: bool = False
+
+
 @router.post("/reverify-all")
 def reverify_all_matches(
+    payload: ReverifyAllPayload = ReverifyAllPayload(),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
@@ -382,7 +511,7 @@ def reverify_all_matches(
     # Set progress in Redis
     r = redis.from_url(os.getenv("REDIS_URL", "redis://redis:6379/0"))
     r.set(
-        f"verify:{current_user.id}:progress",
+        _vkey(current_user.id, payload.scan_id),
         json.dumps({
             "total": total,
             "done": 0,
@@ -394,7 +523,7 @@ def reverify_all_matches(
         ex=7200,
     )
 
-    task = verify_matches_task.delay(user_id=current_user.id, filters={})
+    task = verify_matches_task.delay(user_id=current_user.id, filters={}, use_proxy=payload.use_proxy)
 
     return {"queued": True, "total": total, "task_id": task.id}
 
@@ -402,10 +531,12 @@ def reverify_all_matches(
 class ReverifyFilteredPayload(BaseModel):
     provider: Optional[str] = None
     service: Optional[str] = None
+    scan_id: Optional[int] = None
     verified_status: Optional[str] = None
     canary: Optional[str] = None
     math: Optional[str] = None
     consistency: Optional[str] = None
+    use_proxy: bool = False
 
 
 @router.post("/reverify-filtered")
@@ -423,6 +554,8 @@ def reverify_filtered(
 
     q = db.query(Match.id).join(ScanJob).filter(ScanJob.user_id == current_user.id)
 
+    if payload.scan_id:
+        q = q.filter(Match.scan_job_id == payload.scan_id)
     if payload.provider:
         q = q.filter(Match.provider == payload.provider)
     if payload.service:
@@ -454,7 +587,7 @@ def reverify_filtered(
 
     r = redis.from_url(os.getenv("REDIS_URL", "redis://redis:6379/0"))
     r.set(
-        f"verify:{current_user.id}:progress",
+        _vkey(current_user.id, getattr(payload, "scan_id", None)),
         json.dumps({
             "total": total, "done": 0, "legitimate": 0,
             "honeypot": 0, "unreachable": 0, "state": "queued",
@@ -467,11 +600,13 @@ def reverify_filtered(
         filters={
             "provider": payload.provider,
             "service": payload.service,
+            "scan_id": payload.scan_id,
             "verified_status": payload.verified_status,
             "canary": payload.canary,
             "math": payload.math,
             "consistency": payload.consistency,
         },
+        use_proxy=payload.use_proxy,
     )
 
     return {"queued": True, "total": total, "task_id": task.id}
@@ -481,6 +616,7 @@ def reverify_filtered(
 def export_matches(
     provider: Optional[str] = Query(None),
     service: Optional[str] = Query(None),
+    scan_id: Optional[int] = Query(None),
     verified_status: Optional[str] = Query(None),
     canary: Optional[str] = Query(None),
     math: Optional[str] = Query(None),
@@ -492,6 +628,8 @@ def export_matches(
     """Export filtered matches as JSON with ip, ip:port, models format."""
     q = db.query(Match).join(ScanJob).filter(ScanJob.user_id == current_user.id)
 
+    if scan_id:
+        q = q.filter(Match.scan_job_id == scan_id)
     if provider:
         q = q.filter(Match.provider == provider)
     if service:

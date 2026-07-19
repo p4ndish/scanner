@@ -1,7 +1,8 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { api } from '../lib/api'
 import { useToast } from '../lib/toast'
-import { Download, Filter, Upload, Brain, Code2, Zap, ChevronDown, ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight, ShieldCheck, Trash2, AlertTriangle } from 'lucide-react'
+import { useDebouncedValue } from '../lib/useDebounce'
+import { Download, Filter, Upload, Brain, Code2, Zap, ChevronDown, ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight, ShieldCheck, Trash2, AlertTriangle, Globe, RefreshCw, Square } from 'lucide-react'
 
 const SERVICE_COLORS = {
   ollama: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
@@ -47,16 +48,24 @@ const SERVICE_OPTIONS = [
 
 const PER_PAGE_OPTIONS = [10, 25, 50, 100]
 
-export default function Results() {
+export default function Results({ scanId }) {
   const { toast, confirm: toastConfirm } = useToast()
   const [matches, setMatches] = useState([])
   const [pagination, setPagination] = useState({ total: 0, page: 1, per_page: 25, pages: 0 })
-  const [filters, setFilters] = useState({ provider: '', service: '', min_score: '', max_score: '', model: '', llm_mode: '', verified_status: '', ip: '', canary: '', math: '', consistency: '' })
+  const [filters, setFilters] = useState({ provider: '', service: '', min_score: '', max_score: '', llm_mode: '', verified_status: '', canary: '', math: '', consistency: '' })
+  const [modelInput, setModelInput] = useState('')
+  const [ipInput, setIpInput] = useState('')
+  const debouncedModel = useDebouncedValue(modelInput, 400)
+  const debouncedIp = useDebouncedValue(ipInput, 400)
   const [providers, setProviders] = useState([])
   const [loading, setLoading] = useState(true)
   const [importing, setImporting] = useState(false)
   const [importStatus, setImportStatus] = useState('')
   const [verifying, setVerifying] = useState(false)
+  const [reverifying, setReverifying] = useState(false)
+  const [useProxy, setUseProxy] = useState(false)
+  const [proxyCount, setProxyCount] = useState(0)
+  const [verifyProgress, setVerifyProgress] = useState(null)
   const fileInputRef = useRef(null)
 
   // Bulk delete dialog state
@@ -97,21 +106,62 @@ export default function Results() {
     }
   }
 
-  async function load(page = pagination.page, perPage = pagination.per_page) {
-    setLoading(true)
+  useEffect(() => {
+    api.get('/proxies').then((res) => setProxyCount((res || []).length)).catch(() => {})
+  }, [])
+
+  // Poll verification progress, scoped to this import when scanId is set so the
+  // bar reflects THIS import's verify (not a global verify running elsewhere).
+  const [globalProgress, setGlobalProgress] = useState(null)
+  useEffect(() => {
+    let active = true
+    async function poll() {
+      try {
+        const url = scanId
+          ? `/matches/verification-status?scan_id=${scanId}`
+          : '/matches/verification-status'
+        const res = await api.get(url)
+        if (!active) return
+        if (scanId) {
+          setVerifyProgress(res.progress || null)
+          setGlobalProgress(res.global_progress || null)
+        } else {
+          setVerifyProgress(res)
+          setGlobalProgress(null)
+        }
+      } catch (e) { /* ignore */ }
+    }
+    poll()
+    const iv = setInterval(poll, 3000)
+    return () => { active = false; clearInterval(iv) }
+  }, [scanId])
+
+  const verifyRunning = verifyProgress && (verifyProgress.state === 'running' || verifyProgress.state === 'queued')
+  const verifyFailed = verifyProgress && verifyProgress.state === 'failed'
+  const verifyPct = verifyProgress && verifyProgress.total > 0
+    ? Math.round((verifyProgress.done / verifyProgress.total) * 100)
+    : 0
+  const globalRunning = globalProgress && (globalProgress.state === 'running' || globalProgress.state === 'queued')
+  const globalPct = globalProgress && globalProgress.total > 0
+    ? Math.round((globalProgress.done / globalProgress.total) * 100)
+    : 0
+
+  const load = useCallback(async (page = pagination.page, perPage = pagination.per_page, f = filters, model = debouncedModel, ip = debouncedIp, silent = false) => {
+    if (!silent) setLoading(true)
     try {
       const params = new URLSearchParams()
-      if (filters.provider) params.set('provider', filters.provider)
-      if (filters.service) params.set('service', filters.service)
-      if (filters.min_score) params.set('min_score', filters.min_score)
-      if (filters.max_score) params.set('max_score', filters.max_score)
-      if (filters.llm_mode !== '') params.set('llm_mode', filters.llm_mode)
-      if (filters.verified_status) params.set('verified_status', filters.verified_status)
-      if (filters.model.trim()) params.set('model', filters.model.trim())
-      if (filters.ip.trim()) params.set('ip', filters.ip.trim())
-      if (filters.canary) params.set('canary', filters.canary)
-      if (filters.math) params.set('math', filters.math)
-      if (filters.consistency) params.set('consistency', filters.consistency)
+      if (f.provider) params.set('provider', f.provider)
+      if (f.service) params.set('service', f.service)
+      if (f.min_score) params.set('min_score', f.min_score)
+      if (f.max_score) params.set('max_score', f.max_score)
+      if (f.llm_mode !== '') params.set('llm_mode', f.llm_mode)
+      if (f.verified_status) params.set('verified_status', f.verified_status)
+      if (model.trim()) params.set('model', model.trim())
+      if (ip.trim()) params.set('ip', ip.trim())
+      if (f.canary) params.set('canary', f.canary)
+      if (f.math) params.set('math', f.math)
+      if (f.consistency) params.set('consistency', f.consistency)
+      if (scanId) params.set('scan_id', String(scanId))
       params.set('page', String(page))
       params.set('per_page', String(perPage))
       const res = await api.get(`/matches?${params.toString()}`)
@@ -125,19 +175,33 @@ export default function Results() {
     } catch (e) {
       console.error(e)
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
-  }
+  },
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [pagination.page, pagination.per_page, filters, debouncedModel, debouncedIp, scanId])
 
   useEffect(() => {
     loadProviders()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Auto-refresh the table while a verification is running (or just finished) so
+  // re-verified statuses update live without a manual reload. Uses silent mode
+  // to avoid flashing the loading spinner. Also does a final refresh when the
+  // verify transitions to completed/cancelled.
   useEffect(() => {
-    load(1, pagination.per_page)
+    const st = verifyProgress?.state
+    if (st === 'running' || st === 'queued' || st === 'completed' || st === 'cancelled') {
+      load(pagination.page, pagination.per_page, filters, debouncedModel, debouncedIp, true)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters])
+  }, [verifyProgress?.done, verifyProgress?.state])
+
+  useEffect(() => {
+    load(1, pagination.per_page, filters, debouncedModel, debouncedIp)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, debouncedModel, debouncedIp, scanId])
 
   function goToPage(page) {
     if (page < 1 || page > pagination.pages) return
@@ -291,6 +355,8 @@ export default function Results() {
         provider: filters.provider || undefined,
         service: filters.service || undefined,
         verified_status: 'pending',
+        scan_id: scanId || undefined,
+        use_proxy: useProxy,
       })
       toast(`Verification queued for ${res.total.toLocaleString()} matches`)
     } catch (e) {
@@ -300,13 +366,60 @@ export default function Results() {
     }
   }
 
+  async function reverifyUnreachable() {
+    setReverifying(true)
+    try {
+      const res = await api.post('/matches/reverify', {
+        all_unreachable: true,
+        scan_id: scanId || undefined,
+        use_proxy: useProxy,
+      })
+      toast(`Re-verify queued for ${res.total.toLocaleString()} unreachable matches`)
+    } catch (e) {
+      toast('Failed: ' + e.message, 'error')
+    } finally {
+      setReverifying(false)
+    }
+  }
+
+  async function reverifyFiltered() {
+    setReverifying(true)
+    try {
+      const res = await api.post('/matches/reverify-filtered', {
+        provider: filters.provider || undefined,
+        service: filters.service || undefined,
+        scan_id: scanId || undefined,
+        verified_status: filters.verified_status || undefined,
+        canary: filters.canary || undefined,
+        math: filters.math || undefined,
+        consistency: filters.consistency || undefined,
+        use_proxy: useProxy,
+      })
+      toast(`Re-verify filtered queued for ${res.total.toLocaleString()} matches`)
+    } catch (e) {
+      toast('Failed: ' + e.message, 'error')
+    } finally {
+      setReverifying(false)
+    }
+  }
+
+  async function stopVerification() {
+    try {
+      await api.post('/matches/verify/cancel', {})
+      toast('Stop requested — verify will halt after the current chunk')
+    } catch (e) {
+      toast('Failed to stop: ' + e.message, 'error')
+    }
+  }
+
   async function exportFiltered() {
     try {
       const params = new URLSearchParams()
+      if (scanId) params.set('scan_id', scanId)
       if (filters.provider) params.set('provider', filters.provider)
       if (filters.service) params.set('service', filters.service)
       if (filters.verified_status) params.set('verified_status', filters.verified_status)
-      if (filters.ip.trim()) params.set('ip', filters.ip.trim())
+      if (debouncedIp.trim()) params.set('ip', debouncedIp.trim())
       if (filters.canary) params.set('canary', filters.canary)
       if (filters.math) params.set('math', filters.math)
       if (filters.consistency) params.set('consistency', filters.consistency)
@@ -338,6 +451,7 @@ export default function Results() {
     }
     try {
       const params = new URLSearchParams()
+      if (scanId) params.set('scan_id', scanId)
       if (payload.provider) params.set('provider', payload.provider)
       if (payload.service) params.set('service', payload.service)
       if (payload.verified_status) params.set('verified_status', payload.verified_status)
@@ -358,6 +472,7 @@ export default function Results() {
 
   async function executeBulkDelete() {
     const payload = {}
+    if (scanId) payload.scan_id = scanId
     if (bulkDeleteFilters.scope === 'provider') {
       payload.provider = bulkDeleteFilters.provider
     } else if (bulkDeleteFilters.scope === 'service') {
@@ -406,15 +521,19 @@ export default function Results() {
           </p>
         </div>
         <div className="flex gap-2">
-          <input type="file" accept=".json" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={importing}
-            className="inline-flex items-center px-3 py-2 bg-emerald-600 hover:bg-emerald-500 border border-emerald-500 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-          >
-            <Upload className="w-4 h-4 mr-2" />
-            {importing ? (importStatus || 'Importing...') : 'Import CLI Results'}
-          </button>
+          {!scanId && (
+            <input type="file" accept=".json" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
+          )}
+          {!scanId && (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={importing}
+              className="inline-flex items-center px-3 py-2 bg-emerald-600 hover:bg-emerald-500 border border-emerald-500 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              {importing ? (importStatus || 'Importing...') : 'Import CLI Results'}
+            </button>
+          )}
           <button onClick={exportCSV} className="inline-flex items-center px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors">
             <Download className="w-4 h-4 mr-2" /> CSV
           </button>
@@ -423,7 +542,7 @@ export default function Results() {
           </button>
           <button
             onClick={startVerification}
-            disabled={verifying}
+            disabled={verifying || verifyRunning}
             className="inline-flex items-center px-3 py-2 bg-amber-600 hover:bg-amber-500 border border-amber-500 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
           >
             {verifying ? (
@@ -432,6 +551,40 @@ export default function Results() {
               <ShieldCheck className="w-4 h-4 mr-2" />
             )}
             Verify Pending
+          </button>
+          <button
+            onClick={reverifyUnreachable}
+            disabled={reverifying || verifyRunning}
+            title="Re-verify unreachable matches"
+            className="inline-flex items-center px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+          >
+            {reverifying ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-400 mr-2" />
+            ) : (
+              <RefreshCw className="w-4 h-4 mr-2" />
+            )}
+            Re-verify Unreachable
+          </button>
+          <button
+            onClick={reverifyFiltered}
+            disabled={reverifying || verifyRunning}
+            title="Re-verify matches matching current filters"
+            className="inline-flex items-center px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Re-verify Filtered
+          </button>
+          <button
+            onClick={() => setUseProxy((v) => !v)}
+            title={proxyCount === 0 ? 'Add proxies on the Proxies page first' : 'Route verify requests through your proxy pool'}
+            className={`inline-flex items-center px-3 py-2 border rounded-lg text-sm font-medium transition-colors ${
+              useProxy
+                ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400'
+                : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Globe className="w-4 h-4 mr-2" />
+            Use proxy{proxyCount > 0 ? ` (${proxyCount})` : ''}
           </button>
           <button
             onClick={() => setBulkDeleteOpen(true)}
@@ -469,7 +622,7 @@ export default function Results() {
                 onChange={(e) => setBulkDeleteFilters((f) => ({ ...f, scope: e.target.value }))}
                 className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
               >
-                <option value="all">All matches</option>
+                <option value="all">{scanId ? 'All matches in this import' : 'All matches'}</option>
                 <option value="provider">By provider</option>
                 <option value="service">By service</option>
                 <option value="verified_status">By verified status</option>
@@ -543,6 +696,62 @@ export default function Results() {
         </div>
       )}
 
+      {/* Verification progress (scoped to this import when scanId is set) */}
+      {verifyProgress && (verifyRunning || verifyProgress.state === 'cancelled' || verifyFailed) && (
+        <div className={verifyFailed ? "bg-rose-500/5 border border-rose-500/30 rounded-xl p-4" : "bg-slate-900 border border-slate-800 rounded-xl p-4"}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-slate-300 flex items-center gap-2">
+              {verifyFailed ? 'Verification failed' : verifyProgress.state === 'cancelled' ? 'Verification cancelled' : verifyProgress.state === 'queued' ? 'Verification queued' : 'Verifying'}
+              {scanId && verifyProgress.state !== 'cancelled' && !verifyFailed && <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded uppercase">this import</span>}
+              {verifyProgress.using_proxy && (
+                <span className="text-[10px] bg-cyan-500/10 text-cyan-400 px-1.5 py-0.5 rounded uppercase">via proxy</span>
+              )}
+            </span>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-slate-400">
+                {(verifyProgress.done || 0).toLocaleString()} / {(verifyProgress.total || 0).toLocaleString()} ({verifyPct}%)
+              </span>
+              {verifyRunning && (
+                <button
+                  onClick={stopVerification}
+                  className="inline-flex items-center px-2.5 py-1 bg-rose-600 hover:bg-rose-500 border border-rose-500 rounded-lg text-xs font-medium transition-colors"
+                >
+                  <Square className="w-3 h-3 mr-1" />
+                  Stop
+                </button>
+              )}
+            </div>
+          </div>
+          {verifyFailed && verifyProgress.error && (
+            <p className="text-sm text-rose-300 mb-2">{verifyProgress.error}</p>
+          )}
+          <div className="w-full bg-slate-800 rounded-full h-2">
+            <div
+              className={verifyProgress.state === 'cancelled' ? 'bg-rose-500 h-2 rounded-full transition-all duration-500' : 'bg-emerald-500 h-2 rounded-full transition-all duration-500'}
+              style={{ width: `${verifyPct}%` }}
+            />
+          </div>
+          <div className="flex gap-4 mt-2 text-xs text-slate-500">
+            <span className="text-emerald-400">Legitimate: {verifyProgress.legitimate || 0}</span>
+            <span className="text-rose-400">Honeypot: {verifyProgress.honeypot || 0}</span>
+            <span className="text-slate-400">Unreachable: {verifyProgress.unreachable || 0}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Secondary note: a global verify is running in the background (shown on import pages) */}
+      {scanId && globalRunning && !verifyRunning && globalProgress && (
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex items-center justify-between">
+          <span className="text-xs text-slate-400 flex items-center gap-2">
+            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-emerald-400" />
+            A global verification is running across all imports
+          </span>
+          <span className="text-xs text-slate-500">
+            {(globalProgress.done || 0).toLocaleString()} / {(globalProgress.total || 0).toLocaleString()} ({globalPct}%)
+          </span>
+        </div>
+      )}
+
       {/* Filters */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
         <div className="flex flex-wrap gap-3 items-center">
@@ -602,14 +811,14 @@ export default function Results() {
           </div>
           <input
             type="text" placeholder="Filter by model name..."
-            value={filters.model}
-            onChange={(e) => setFilters((f) => ({ ...f, model: e.target.value }))}
+            value={modelInput}
+            onChange={(e) => setModelInput(e.target.value)}
             className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
           />
           <input
             type="text" placeholder="Search IP or IP:Port..."
-            value={filters.ip}
-            onChange={(e) => setFilters((f) => ({ ...f, ip: e.target.value }))}
+            value={ipInput}
+            onChange={(e) => setIpInput(e.target.value)}
             className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm w-44 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
           />
           <select
