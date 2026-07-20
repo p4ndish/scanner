@@ -10,6 +10,10 @@
 #   ./start.sh                 # install deps + build + start (port 12211)
 #   WEB_PORT=8080 ./start.sh   # use a different web port
 #   ./start.sh --no-build      # skip frontend rebuild (faster restarts)
+#   ./start.sh --migrate-from /path/to/source/.env   # adopt source SECRET_KEY +
+#                                                    # ENCRYPTION_KEY so a restored
+#                                                    # backup's proxy/machine creds
+#                                                    # decrypt correctly
 #   ./start.sh --down          # stop the stack
 #   ./start.sh --logs          # follow logs
 #
@@ -69,6 +73,7 @@ pkg_install() {
 case "${1:-}" in
   --down)  log "Stopping stack..."; docker compose down; exit 0 ;;
   --logs)  docker compose logs -f; exit 0 ;;
+  --migrate-from) MIGRATE_FROM="${2:-}"; [ -z "$MIGRATE_FROM" ] && die "usage: $0 --migrate-from /path/to/source/.env" ;;
 esac
 NO_BUILD=false
 [ "${1:-}" = "--no-build" ] && NO_BUILD=true
@@ -146,6 +151,28 @@ fi
 # ── 5. Generate .env with secrets (once) ──
 log "Configuring environment (.env)"
 gen_secret() { openssl rand -hex 24 2>/dev/null || head -c 48 /dev/urandom | od -An -tx1 | tr -d ' \n'; }
+
+# Migration helper: copy SECRET_KEY/ENCRYPTION_KEY from another instance's .env
+# so a restored DB backup decrypts correctly. Usage: --migrate-from /path/to/source/.env
+if [ -n "${MIGRATE_FROM:-}" ]; then
+  if [ ! -f "$MIGRATE_FROM" ]; then die "--migrate-from: file not found: $MIGRATE_FROM"; fi
+  SRC_SECRET="$(grep -E '^SECRET_KEY=' "$MIGRATE_FROM" | cut -d= -f2-)"
+  SRC_ENC="$(grep -E '^ENCRYPTION_KEY=' "$MIGRATE_FROM" | cut -d= -f2-)"
+  [ -z "$SRC_ENC" ] && die "--migrate-from: no ENCRYPTION_KEY found in $MIGRATE_FROM"
+  # write/overwrite local .env adopting the source's keys (random PG password)
+  PGPASS="$(gen_secret | cut -c1-24)"
+  cat > .env <<EOF
+# Adopted from $MIGRATE_FROM so restored credentials decrypt (git-ignored)
+WEB_PORT=${WEB_PORT}
+SECRET_KEY=${SRC_SECRET}
+ENCRYPTION_KEY=${SRC_ENC}
+POSTGRES_USER=scanner
+POSTGRES_PASSWORD=${PGPASS}
+POSTGRES_DB=opencode_scanner
+EOF
+  ok "adopted SECRET_KEY + ENCRYPTION_KEY from $MIGRATE_FROM (proxy/machine creds will decrypt)"
+fi
+
 if [ ! -f .env ]; then
   SECRET_KEY="$(gen_secret)"
   ENCRYPTION_KEY="$(gen_secret)"
@@ -160,6 +187,12 @@ POSTGRES_PASSWORD=${PGPASS}
 POSTGRES_DB=opencode_scanner
 EOF
   ok "wrote .env with fresh random secrets"
+  # Warn if a backup exists: restoring it needs the SOURCE's ENCRYPTION_KEY
+  if ls backups/*.sql.gz >/dev/null 2>&1; then
+    warn "A backup exists in backups/. If you restore it, the proxy/machine"
+    warn "passwords won't decrypt unless ENCRYPTION_KEY matches the source."
+    warn "Re-run:  ./start.sh --migrate-from /path/to/source/.env"
+  fi
 else
   # Keep existing secrets, just make sure WEB_PORT reflects the requested port
   if grep -q '^WEB_PORT=' .env; then
