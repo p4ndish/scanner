@@ -3,6 +3,7 @@ import { api } from '../lib/api'
 import { useToast } from '../lib/toast'
 import { useDebouncedValue } from '../lib/useDebounce'
 import { Download, Filter, Upload, Brain, Code2, Zap, ChevronDown, ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight, ShieldCheck, Trash2, AlertTriangle, Globe, RefreshCw, Square } from 'lucide-react'
+import MultiSelect from '../components/MultiSelect'
 
 const SERVICE_COLORS = {
   ollama: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
@@ -756,25 +757,22 @@ export default function Results({ scanId }) {
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
         <div className="flex flex-wrap gap-3 items-center">
           <Filter className="w-4 h-4 text-slate-500 shrink-0" />
-          <select
+          <MultiSelect
             value={filters.provider}
-            onChange={(e) => setFilters((f) => ({ ...f, provider: e.target.value }))}
-            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-          >
-            <option value="">All providers</option>
-            {providers.map((p) => (
-              <option key={p} value={p === 'unknown' ? '' : p}>{p}</option>
-            ))}
-          </select>
-          <select
+            onChange={(v) => setFilters((f) => ({ ...f, provider: v }))}
+            options={providers.filter((p) => p && p !== 'unknown').map((p) => ({ value: p, label: p }))}
+            placeholder="All providers"
+            allLabel="All providers"
+            className="w-44"
+          />
+          <MultiSelect
             value={filters.service}
-            onChange={(e) => setFilters((f) => ({ ...f, service: e.target.value }))}
-            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-          >
-            {SERVICE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
+            onChange={(v) => setFilters((f) => ({ ...f, service: v }))}
+            options={SERVICE_OPTIONS.filter((o) => o.value).map((o) => ({ value: o.value, label: o.label }))}
+            placeholder="All services"
+            allLabel="All services"
+            className="w-44"
+          />
           <select
             value={filters.llm_mode}
             onChange={(e) => setFilters((f) => ({ ...f, llm_mode: e.target.value }))}
@@ -784,17 +782,19 @@ export default function Results({ scanId }) {
             <option value="false">OpenCode</option>
             <option value="true">LLM</option>
           </select>
-          <select
+          <MultiSelect
             value={filters.verified_status}
-            onChange={(e) => setFilters((f) => ({ ...f, verified_status: e.target.value }))}
-            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-          >
-            <option value="">All statuses</option>
-            <option value="pending">Pending</option>
-            <option value="legitimate">Legitimate</option>
-            <option value="honeypot">Honeypot</option>
-            <option value="unreachable">Unreachable</option>
-          </select>
+            onChange={(v) => setFilters((f) => ({ ...f, verified_status: v }))}
+            options={[
+              { value: 'pending', label: 'Pending' },
+              { value: 'legitimate', label: 'Legitimate' },
+              { value: 'honeypot', label: 'Honeypot' },
+              { value: 'unreachable', label: 'Unreachable' },
+            ]}
+            placeholder="All statuses"
+            allLabel="All statuses"
+            className="w-44"
+          />
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-500">Score</span>
             <input

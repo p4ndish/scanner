@@ -20,6 +20,13 @@ def _vkey(user_id: int, scan_id=None) -> str:
     return f"verify:{user_id}:{scope}:progress"
 
 
+def _split_list(val):
+    """Parse a comma-separated filter value into a clean list. None/empty -> []."""
+    if not val:
+        return []
+    return [v.strip() for v in val.split(",") if v.strip()]
+
+
 @router.get("")
 def list_matches(
     scan_id: Optional[int] = Query(None),
@@ -43,18 +50,21 @@ def list_matches(
 
     if scan_id:
         q = q.filter(Match.scan_job_id == scan_id)
-    if provider:
-        q = q.filter(Match.provider == provider)
-    if service:
-        q = q.filter(Match.service == service)
+    prov = _split_list(provider)
+    if prov:
+        q = q.filter(Match.provider.in_(prov))
+    svc = _split_list(service)
+    if svc:
+        q = q.filter(Match.service.in_(svc))
     if min_score is not None:
         q = q.filter(Match.score >= min_score)
     if max_score is not None:
         q = q.filter(Match.score <= max_score)
     if llm_mode is not None:
         q = q.filter(ScanJob.llm_mode == llm_mode)
-    if verified_status:
-        q = q.filter(Match.verified_status == verified_status)
+    vstat = _split_list(verified_status)
+    if vstat:
+        q = q.filter(Match.verified_status.in_(vstat))
     if model and model.strip():
         model_lower = model.strip().lower()
         q = q.filter(
@@ -304,13 +314,13 @@ def start_verification(
         Match.verified_status.in_(["pending", "unreachable"]),
     )
     if payload.provider:
-        q = q.filter(Match.provider == payload.provider)
+        q = q.filter(Match.provider.in_(_split_list(payload.provider)))
     if payload.service:
-        q = q.filter(Match.service == payload.service)
+        q = q.filter(Match.service.in_(_split_list(payload.service)))
     if payload.scan_id:
         q = q.filter(Match.scan_job_id == payload.scan_id)
     if payload.verified_status:
-        q = q.filter(Match.verified_status == payload.verified_status)
+        q = q.filter(Match.verified_status.in_(_split_list(payload.verified_status)))
 
     total = q.count()
     if total == 0:
@@ -557,11 +567,11 @@ def reverify_filtered(
     if payload.scan_id:
         q = q.filter(Match.scan_job_id == payload.scan_id)
     if payload.provider:
-        q = q.filter(Match.provider == payload.provider)
+        q = q.filter(Match.provider.in_(_split_list(payload.provider)))
     if payload.service:
-        q = q.filter(Match.service == payload.service)
+        q = q.filter(Match.service.in_(_split_list(payload.service)))
     if payload.verified_status:
-        q = q.filter(Match.verified_status == payload.verified_status)
+        q = q.filter(Match.verified_status.in_(_split_list(payload.verified_status)))
     if payload.canary and payload.canary in ("pass", "fail"):
         expected = "true" if payload.canary == "pass" else "false"
         q = q.filter(cast(Match.verification_details["canary_pass"], String) == expected)
@@ -630,12 +640,15 @@ def export_matches(
 
     if scan_id:
         q = q.filter(Match.scan_job_id == scan_id)
-    if provider:
-        q = q.filter(Match.provider == provider)
-    if service:
-        q = q.filter(Match.service == service)
-    if verified_status:
-        q = q.filter(Match.verified_status == verified_status)
+    prov = _split_list(provider)
+    if prov:
+        q = q.filter(Match.provider.in_(prov))
+    svc = _split_list(service)
+    if svc:
+        q = q.filter(Match.service.in_(svc))
+    vstat = _split_list(verified_status)
+    if vstat:
+        q = q.filter(Match.verified_status.in_(vstat))
     if ip and ip.strip():
         ip_val = ip.strip()
         if ':' in ip_val:
@@ -678,7 +691,11 @@ def export_matches(
             "ip": m.ip,
             "ip:port": f"{m.ip}:{m.port}",
             "port": m.port,
+            "scheme": m.scheme,
             "service": m.service,
+            "provider": m.provider,
+            "region": m.region,
+            "score": m.score,
             "verified_status": m.verified_status,
             "models": models,
         })
@@ -718,11 +735,11 @@ def bulk_delete_matches(
         # doesn't allow delete() directly on a query with join()
         q = db.query(Match.id).join(ScanJob).filter(ScanJob.user_id == current_user.id)
         if payload.provider:
-            q = q.filter(Match.provider == payload.provider)
+            q = q.filter(Match.provider.in_(_split_list(payload.provider)))
         if payload.service:
-            q = q.filter(Match.service == payload.service)
+            q = q.filter(Match.service.in_(_split_list(payload.service)))
         if payload.verified_status:
-            q = q.filter(Match.verified_status == payload.verified_status)
+            q = q.filter(Match.verified_status.in_(_split_list(payload.verified_status)))
         if payload.scan_id:
             q = q.filter(Match.scan_job_id == payload.scan_id)
         subq = q.subquery()

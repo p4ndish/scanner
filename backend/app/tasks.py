@@ -59,6 +59,13 @@ class ScanCancelled(Exception):
     pass
 
 
+def _split_list(val):
+    """Parse a comma-separated filter value into a clean list. None/empty -> []."""
+    if not val:
+        return []
+    return [v.strip() for v in val.split(",") if v.strip()]
+
+
 def _check_cancelled(scan_id: int):
     """Check if the scan has been cancelled via Redis flag."""
     import redis
@@ -608,13 +615,13 @@ def _run_verification(self, user_id: int, filters: dict, using_proxy: bool, max_
 
         if filters:
             if filters.get("provider"):
-                q = q.filter(Match.provider == filters["provider"])
+                q = q.filter(Match.provider.in_(_split_list(filters["provider"])))
             if filters.get("service"):
-                q = q.filter(Match.service == filters["service"])
+                q = q.filter(Match.service.in_(_split_list(filters["service"])))
             if filters.get("scan_id"):
                 q = q.filter(Match.scan_job_id == filters["scan_id"])
             if filters.get("verified_status"):
-                q = q.filter(Match.verified_status == filters["verified_status"])
+                q = q.filter(Match.verified_status.in_(_split_list(filters["verified_status"])))
             if filters.get("match_ids"):
                 q = q.filter(Match.id.in_(filters["match_ids"]))
             elif filters.get("all_unreachable"):
