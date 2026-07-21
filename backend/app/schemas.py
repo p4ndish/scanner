@@ -188,6 +188,15 @@ class ProxyConfigCreate(BaseModel):
     password: Optional[str] = None  # encrypted at rest, never returned
 
 
+class ProxyConfigUpdate(BaseModel):
+    name: Optional[str] = None
+    scheme: Optional[str] = None
+    host: Optional[str] = None
+    port: Optional[int] = None
+    username: Optional[str] = None
+    password: Optional[str] = None  # if omitted/None, the existing password is kept
+
+
 class ProxyConfigOut(BaseModel):
     id: int
     name: str

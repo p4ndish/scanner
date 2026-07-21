@@ -3,15 +3,18 @@ from typing import List
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from backend.app.auth import get_current_active_user
 from backend.app.database import get_db
 from backend.app.models import User, ProxyConfig
 from backend.app.crypto import encrypt, decrypt
-from backend.app.schemas import ProxyConfigCreate, ProxyConfigOut
+from backend.app.schemas import ProxyConfigCreate, ProxyConfigUpdate, ProxyConfigOut
 
 router = APIRouter(prefix="/proxies", tags=["proxies"])
+
+VALID_SCHEMES = ("http", "https", "socks5", "socks5h")
 
 
 def build_proxy_url(p: ProxyConfig) -> str:
@@ -69,6 +72,127 @@ def create_proxy(
         encrypted_password=encrypt(data.password) if data.password else None,
     )
     db.add(p)
+    db.commit()
+    db.refresh(p)
+    return _to_out(p)
+
+
+@router.get("/export")
+def export_proxies(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Export all of the user's proxies as JSON, including decrypted passwords
+    so the file can be re-imported on another instance."""
+    from datetime import timezone
+    rows = (
+        db.query(ProxyConfig)
+        .filter(ProxyConfig.user_id == current_user.id)
+        .order_by(ProxyConfig.created_at.asc())
+        .all()
+    )
+    proxies = []
+    for p in rows:
+        proxies.append({
+            "name": p.name,
+            "scheme": p.scheme,
+            "host": p.host,
+            "port": p.port,
+            "username": p.username,
+            "password": decrypt(p.encrypted_password) if p.encrypted_password else None,
+        })
+    return {
+        "$meta": {
+            "tool": "opencode-scanner",
+            "type": "proxies",
+            "exported_at": datetime.now(timezone.utc).isoformat(),
+            "count": len(proxies),
+        },
+        "proxies": proxies,
+    }
+
+
+class ProxyImportItem(ProxyConfigCreate):
+    pass
+
+
+class ProxyImportPayload(BaseModel):
+    proxies: list[ProxyImportItem]
+    replace: bool = False  # if true, delete existing proxies first
+
+
+@router.post("/import")
+def import_proxies(
+    payload: ProxyImportPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Import proxies from an exported JSON. Skips exact duplicates
+    (same host:port:username) unless replace=true."""
+    if payload.replace:
+        db.query(ProxyConfig).filter(ProxyConfig.user_id == current_user.id).delete()
+        db.commit()
+
+    existing = {
+        (p.host, p.port, p.username or "")
+        for p in db.query(ProxyConfig).filter(ProxyConfig.user_id == current_user.id).all()
+    }
+    imported = 0
+    skipped = 0
+    for item in payload.proxies:
+        scheme = item.scheme if item.scheme in VALID_SCHEMES else "http"
+        key = (item.host.strip(), item.port, (item.username or "").strip())
+        if key in existing:
+            skipped += 1
+            continue
+        p = ProxyConfig(
+            user_id=current_user.id,
+            name=item.name.strip(),
+            scheme=scheme,
+            host=item.host.strip(),
+            port=item.port,
+            username=item.username.strip() if item.username else None,
+            encrypted_password=encrypt(item.password) if item.password else None,
+        )
+        db.add(p)
+        existing.add(key)
+        imported += 1
+    db.commit()
+    return {"imported": imported, "skipped": skipped}
+
+
+@router.put("/{proxy_id}", response_model=ProxyConfigOut)
+def update_proxy(
+    proxy_id: int,
+    data: ProxyConfigUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Edit an existing proxy. Any omitted field is left unchanged. Leave
+    password empty/null to keep the current password."""
+    p = (
+        db.query(ProxyConfig)
+        .filter(ProxyConfig.id == proxy_id, ProxyConfig.user_id == current_user.id)
+        .first()
+    )
+    if not p:
+        raise HTTPException(status_code=404, detail="Proxy not found")
+
+    if data.name is not None:
+        p.name = data.name.strip()
+    if data.scheme is not None:
+        if data.scheme not in VALID_SCHEMES:
+            raise HTTPException(status_code=400, detail="scheme must be http, https, socks5, or socks5h")
+        p.scheme = data.scheme
+    if data.host is not None:
+        p.host = data.host.strip()
+    if data.port is not None:
+        p.port = data.port
+    if data.username is not None:
+        p.username = data.username.strip() or None
+    if data.password:  # only change password if a non-empty one is provided
+        p.encrypted_password = encrypt(data.password)
+
     db.commit()
     db.refresh(p)
     return _to_out(p)

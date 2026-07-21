@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { api } from '../lib/api'
 import { useToast } from '../lib/toast'
-import { Globe, Plus, Trash2, X, CheckCircle, XCircle } from 'lucide-react'
+import { Globe, Plus, Trash2, X, CheckCircle, XCircle, Pencil, Download, Upload } from 'lucide-react'
 
 export default function Proxies() {
   const { toast, confirm: toastConfirm } = useToast()
@@ -9,6 +9,8 @@ export default function Proxies() {
   const [loading, setLoading] = useState(true)
   const [showDialog, setShowDialog] = useState(false)
   const [testingId, setTestingId] = useState(null)
+  const [editingId, setEditingId] = useState(null) // null = add mode, id = edit mode
+  const fileInputRef = useRef(null)
 
   // form
   const [name, setName] = useState('')
@@ -37,7 +39,23 @@ export default function Proxies() {
 
   function resetForm() {
     setName(''); setScheme('http'); setHost(''); setPort(8080)
-    setUsername(''); setPassword('')
+    setUsername(''); setPassword(''); setEditingId(null)
+  }
+
+  function openAdd() {
+    resetForm()
+    setShowDialog(true)
+  }
+
+  function openEdit(p) {
+    setEditingId(p.id)
+    setName(p.name || '')
+    setScheme(p.scheme || 'http')
+    setHost(p.host || '')
+    setPort(p.port || 8080)
+    setUsername(p.username || '')
+    setPassword('') // blank = keep existing
+    setShowDialog(true)
   }
 
   async function saveProxy() {
@@ -47,11 +65,17 @@ export default function Proxies() {
     }
     setSaving(true)
     try {
-      await api.post('/proxies', {
+      const body = {
         name: name.trim(), scheme, host: host.trim(), port: Number(port),
         username: username.trim() || null, password: password || null,
-      })
-      toast('Proxy added')
+      }
+      if (editingId) {
+        await api.put(`/proxies/${editingId}`, body)
+        toast('Proxy updated')
+      } else {
+        await api.post('/proxies', body)
+        toast('Proxy added')
+      }
       setShowDialog(false)
       resetForm()
       load()
@@ -87,6 +111,42 @@ export default function Proxies() {
     }
   }
 
+  async function exportProxies() {
+    try {
+      const res = await api.get('/proxies/export')
+      const blob = new Blob([JSON.stringify(res, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `proxies_export_${Date.now()}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast(`Exported ${res.$meta?.count ?? res.proxies?.length ?? 0} proxies`)
+    } catch (e) {
+      toast('Export failed: ' + e.message, 'error')
+    }
+  }
+
+  async function handleImportFile(e) {
+    const file = e.target.files[0]
+    e.target.value = ''
+    if (!file) return
+    try {
+      const text = await file.text()
+      const data = JSON.parse(text)
+      const proxiesArr = Array.isArray(data) ? data : data.proxies
+      if (!Array.isArray(proxiesArr) || proxiesArr.length === 0) {
+        toast('No proxies found in file', 'error')
+        return
+      }
+      const res = await api.post('/proxies/import', { proxies: proxiesArr, replace: false })
+      toast(`Imported ${res.imported} proxies` + (res.skipped ? ` (${res.skipped} duplicates skipped)` : ''))
+      load()
+    } catch (e) {
+      toast('Import failed: ' + (e.message || 'invalid JSON'), 'error')
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -97,6 +157,8 @@ export default function Proxies() {
 
   return (
     <div className="space-y-6">
+      <input type="file" accept=".json,application/json" ref={fileInputRef} onChange={handleImportFile} className="hidden" />
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Proxies</h1>
@@ -104,13 +166,30 @@ export default function Proxies() {
             Verification requests route through these (round-robin) when "Use proxy" is enabled.
           </p>
         </div>
-        <button
-          onClick={() => setShowDialog(true)}
-          className="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-sm font-medium transition-colors"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Proxy
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={exportProxies}
+            disabled={proxies.length === 0}
+            className="inline-flex items-center px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+            title="Export all proxies as JSON (includes passwords)"
+          >
+            <Download className="w-4 h-4 mr-2" /> Export
+          </button>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="inline-flex items-center px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-sm font-medium transition-colors"
+            title="Import proxies from an exported JSON"
+          >
+            <Upload className="w-4 h-4 mr-2" /> Import
+          </button>
+          <button
+            onClick={openAdd}
+            className="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-sm font-medium transition-colors"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Proxy
+          </button>
+        </div>
       </div>
 
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
@@ -164,8 +243,16 @@ export default function Proxies() {
                         ) : 'Test'}
                       </button>
                       <button
+                        onClick={() => openEdit(p)}
+                        className="text-slate-500 hover:text-emerald-400 transition-colors p-1.5"
+                        title="Edit"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
                         onClick={() => deleteProxy(p.id, p.name)}
                         className="text-slate-500 hover:text-red-400 transition-colors p-1.5"
+                        title="Delete"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -179,7 +266,7 @@ export default function Proxies() {
                     <Globe className="w-10 h-10 text-slate-700 mx-auto mb-3" />
                     <p className="text-slate-400">No proxies configured.</p>
                     <p className="text-xs text-slate-500 mt-1">
-                      Add HTTP or SOCKS5 proxies to route verification through different IPs.
+                      Add HTTP or SOCKS5 proxies, or Import an exported JSON.
                     </p>
                   </td>
                 </tr>
@@ -189,12 +276,12 @@ export default function Proxies() {
         </div>
       </div>
 
-      {/* Add proxy dialog */}
+      {/* Add / Edit proxy dialog */}
       {showDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 max-w-lg w-full mx-4 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold">Add Proxy</h3>
+              <h3 className="text-lg font-bold">{editingId ? 'Edit Proxy' : 'Add Proxy'}</h3>
               <button onClick={() => !saving && setShowDialog(false)} className="text-slate-500 hover:text-slate-300 transition-colors">
                 <X className="w-5 h-5" />
               </button>
@@ -234,11 +321,14 @@ export default function Proxies() {
                   className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Password <span className="text-slate-600">(optional)</span></label>
+                <label className="block text-xs font-medium text-slate-400 mb-1">
+                  Password <span className="text-slate-600">{editingId ? '(blank = keep current)' : '(optional)'}</span>
+                </label>
                 <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+                  placeholder={editingId ? '••••••••' : ''}
                   className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50" />
               </div>
-              <p className="col-span-2 text-xs text-slate-500">Credentials encrypted at rest. Password never shown again.</p>
+              <p className="col-span-2 text-xs text-slate-500">Credentials encrypted at rest.</p>
             </div>
 
             <div className="flex gap-3 justify-end pt-2">
@@ -248,7 +338,7 @@ export default function Proxies() {
               </button>
               <button onClick={saveProxy} disabled={saving}
                 className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 rounded-lg text-sm font-medium transition-colors">
-                {saving ? 'Saving...' : 'Save Proxy'}
+                {saving ? 'Saving...' : editingId ? 'Save Changes' : 'Save Proxy'}
               </button>
             </div>
           </div>
