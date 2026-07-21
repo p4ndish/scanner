@@ -577,11 +577,11 @@ def verify_matches_task(self, user_id: int, filters: dict = None, use_proxy: boo
             # No proxies configured — proceed without (but note it)
             set_proxy_pool(None)
 
-    # Concurrency through a proxy: too high and a small proxy times out (every
-    # host then shows "unreachable"). With a healthy proxy (e.g. tinyproxy
-    # MaxClients 250) ~40 per proxy is a good balance — well under the limit
-    # while much faster than the old cap of 15. Total capped at 150 for headroom.
-    max_workers = min(150, max(20, 40 * proxy_count)) if active_proxy else 200
+    # Concurrency through a proxy. A robust proxy (3proxy maxconn 1000) handles
+    # 800+ concurrent with flat latency, so 120 per proxy is a good balance:
+    # fast, but conservative enough not to exhaust the upstream router's NAT
+    # table over a long verify. Scales with the number of proxies; capped at 300.
+    max_workers = min(300, max(20, 120 * proxy_count)) if active_proxy else 200
 
     try:
         return _run_verification(self, user_id, filters or {}, active_proxy, max_workers)
