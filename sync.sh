@@ -90,8 +90,14 @@ ok "stack reloaded"
 WEB_PORT="$(grep -E '^WEB_PORT=' .env 2>/dev/null | cut -d= -f2 || echo 12211)"
 WEB_PORT="${WEB_PORT:-12211}"
 log "Health check"
-if curl -fsS "http://localhost:${WEB_PORT}/api/health" >/dev/null 2>&1; then
+# uvicorn needs a moment after restart before it answers
+HEALTHY=false
+for i in 1 2 3 4 5 6 7 8 9 10; do
+  if curl -fsS "http://localhost:${WEB_PORT}/api/health" >/dev/null 2>&1; then HEALTHY=true; break; fi
+  sleep 2
+done
+if [ "$HEALTHY" = true ]; then
   ok "${GRN}synced & healthy${RST} → http://localhost:${WEB_PORT}"
 else
-  echo "  ${YLW}API not responding yet — it may still be starting. Check:${RST} ./sync.sh; docker compose logs --tail=20 web"
+  echo "  ${YLW}API not responding yet — it may still be starting. Check:${RST} docker compose logs --tail=20 web"
 fi
