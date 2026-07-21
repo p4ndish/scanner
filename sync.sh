@@ -25,7 +25,12 @@ else
 fi
 log()  { echo "${BLU}==>${RST} ${BLD}$*${RST}"; }
 ok()   { echo "${GRN}  ✓${RST} $*"; }
+warn() { echo "${YLW}  !${RST} $*"; }
 die()  { echo "  ✗ $*" >&2; exit 1; }
+
+# sudo helper (no-op if root)
+SUDO=""
+[ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1 && SUDO="sudo"
 
 NO_BUILD=false
 CHECK=false
@@ -56,34 +61,57 @@ if [ "$CHECK" = true ]; then
 fi
 
 log "Pulling latest code"
+BEFORE="$(git rev-parse HEAD 2>/dev/null || echo none)"
 git pull --ff-only origin main || die "git pull failed (resolve local changes / merge conflicts, then re-run)"
+AFTER="$(git rev-parse HEAD)"
 ok "code up to date: $(git log --oneline -1)"
+
+# Did Python deps or the Dockerfile change? If so we must rebuild the image.
+NEEDS_IMAGE_BUILD=false
+if [ "$BEFORE" != "$AFTER" ] && [ "$BEFORE" != "none" ]; then
+  if git diff --name-only "$BEFORE" "$AFTER" | grep -qE '^(requirements\.txt|Dockerfile)$'; then
+    NEEDS_IMAGE_BUILD=true
+    warn "requirements.txt/Dockerfile changed — will rebuild the Docker image"
+  fi
+fi
 
 # ── 2. rebuild frontend ──
 if [ "$NO_BUILD" = false ]; then
   log "Building frontend"
+  # Old dist may be owned by root (from a past docker-container build). Make
+  # sure we can overwrite it, using sudo only if a plain rm fails.
+  if [ -d frontend/dist ] && ! rm -rf frontend/dist 2>/dev/null; then
+    warn "dist not writable — clearing with sudo"
+    ${SUDO} rm -rf frontend/dist || die "could not clear frontend/dist"
+  fi
   if command -v npm >/dev/null 2>&1; then
     ( cd frontend && npm install --no-audit --no-fund --silent && npm run build --silent )
     ok "frontend built (via npm)"
   else
-    # npm missing on the host → build inside a node container
-    echo "  npm not found on host — building in node:20-alpine container"
-    docker run --rm -v "$PWD/frontend":/app -w /app node:20-alpine \
+    # npm missing on the host → build inside a node container, AS THE HOST USER
+    # (-u/-e HOME) so the output files are owned by us, not root. This prevents
+    # the EACCES you get when a later host build tries to overwrite root files.
+    echo "  npm not found on host — building in node:20-alpine container (as $(id -u):$(id -g))"
+    docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD/frontend":/app -w /app node:20-alpine \
       sh -c 'npm install --no-audit --no-fund && npm run build' \
       || die "frontend build failed"
-    ok "frontend built (via docker node container)"
+    ok "frontend built (via docker node container, owned by host user)"
   fi
 else
   ok "skipping frontend rebuild (--no-build)"
 fi
 
 # ── 3. reload the stack ──
-# `up -d` creates any missing containers; `restart` reloads the bind-mounted
-# Python code in the web/worker processes (up -d alone won't reload code that's
-# bind-mounted, since the image hasn't changed).
 log "Reloading stack"
-$COMPOSE up -d
-$COMPOSE restart web worker nginx 2>/dev/null || $COMPOSE restart web worker
+if [ "$NEEDS_IMAGE_BUILD" = true ]; then
+  # New Python deps → rebuild the image and recreate containers.
+  $COMPOSE up -d --build
+else
+  # Code-only change: `up -d` ensures containers exist; `restart` reloads the
+  # bind-mounted Python so the running web/worker processes pick it up.
+  $COMPOSE up -d
+  $COMPOSE restart web worker nginx 2>/dev/null || $COMPOSE restart web worker
+fi
 ok "stack reloaded"
 
 # ── 4. quick health check ──
