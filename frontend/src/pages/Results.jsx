@@ -53,7 +53,7 @@ export default function Results({ scanId }) {
   const { toast, confirm: toastConfirm } = useToast()
   const [matches, setMatches] = useState([])
   const [pagination, setPagination] = useState({ total: 0, page: 1, per_page: 25, pages: 0 })
-  const [filters, setFilters] = useState({ provider: '', service: '', min_score: '', max_score: '', llm_mode: '', verified_status: '', canary: '', math: '', consistency: '' })
+  const [filters, setFilters] = useState({ provider: '', service: '', model_type: '', min_score: '', max_score: '', llm_mode: '', verified_status: '', canary: '', math: '', consistency: '' })
   const [modelInput, setModelInput] = useState('')
   const [ipInput, setIpInput] = useState('')
   const debouncedModel = useDebouncedValue(modelInput, 400)
@@ -153,6 +153,7 @@ export default function Results({ scanId }) {
       const params = new URLSearchParams()
       if (f.provider) params.set('provider', f.provider)
       if (f.service) params.set('service', f.service)
+      if (f.model_type) params.set('model_type', f.model_type)
       if (f.min_score) params.set('min_score', f.min_score)
       if (f.max_score) params.set('max_score', f.max_score)
       if (f.llm_mode !== '') params.set('llm_mode', f.llm_mode)
@@ -419,6 +420,7 @@ export default function Results({ scanId }) {
       if (scanId) params.set('scan_id', scanId)
       if (filters.provider) params.set('provider', filters.provider)
       if (filters.service) params.set('service', filters.service)
+      if (filters.model_type) params.set('model_type', filters.model_type)
       if (filters.verified_status) params.set('verified_status', filters.verified_status)
       if (debouncedIp.trim()) params.set('ip', debouncedIp.trim())
       if (filters.canary) params.set('canary', filters.canary)
@@ -771,6 +773,20 @@ export default function Results({ scanId }) {
             options={SERVICE_OPTIONS.filter((o) => o.value).map((o) => ({ value: o.value, label: o.label }))}
             placeholder="All services"
             allLabel="All services"
+            className="w-44"
+          />
+          <MultiSelect
+            value={filters.model_type}
+            onChange={(v) => setFilters((f) => ({ ...f, model_type: v }))}
+            options={[
+              { value: 'chat', label: 'Chat / LLM' },
+              { value: 'image', label: 'Image' },
+              { value: 'audio', label: 'Audio / TTS' },
+              { value: 'video', label: 'Video' },
+              { value: 'embeddings', label: 'Embeddings' },
+            ]}
+            placeholder="All model types"
+            allLabel="All model types"
             className="w-44"
           />
           <select

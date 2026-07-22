@@ -36,6 +36,7 @@ def list_matches(
     max_score: Optional[int] = Query(None),
     llm_mode: Optional[bool] = Query(None),
     verified_status: Optional[str] = Query(None),
+    model_type: Optional[str] = Query(None),
     model: Optional[str] = Query(None),
     ip: Optional[str] = Query(None),
     canary: Optional[str] = Query(None),
@@ -56,6 +57,9 @@ def list_matches(
     svc = _split_list(service)
     if svc:
         q = q.filter(Match.service.in_(svc))
+    mtypes = _split_list(model_type)
+    if mtypes:
+        q = q.filter(Match.model_type.in_(mtypes))
     if min_score is not None:
         q = q.filter(Match.score >= min_score)
     if max_score is not None:
@@ -628,6 +632,7 @@ def export_matches(
     service: Optional[str] = Query(None),
     scan_id: Optional[int] = Query(None),
     verified_status: Optional[str] = Query(None),
+    model_type: Optional[str] = Query(None),
     canary: Optional[str] = Query(None),
     math: Optional[str] = Query(None),
     consistency: Optional[str] = Query(None),
@@ -646,6 +651,9 @@ def export_matches(
     svc = _split_list(service)
     if svc:
         q = q.filter(Match.service.in_(svc))
+    mtypes = _split_list(model_type)
+    if mtypes:
+        q = q.filter(Match.model_type.in_(mtypes))
     vstat = _split_list(verified_status)
     if vstat:
         q = q.filter(Match.verified_status.in_(vstat))
@@ -696,6 +704,7 @@ def export_matches(
             "provider": m.provider,
             "region": m.region,
             "score": m.score,
+            "model_type": m.model_type,
             "verified_status": m.verified_status,
             "models": models,
         })

@@ -68,21 +68,26 @@ def _rpost(url, **kwargs):
     kwargs.setdefault("proxies", _next_proxies())
     return _POST(url, **kwargs)
 
-# ── Model type patterns ──
+# ── Model type patterns (checked in order: embeddings, image, audio, video,
+#    then vision → treated as chat/multimodal; else chat) ──
 EMBEDDING_PATTERNS = [
     r"text-embedding", r"embed", r"bge-", r"e5-", r"gte-", r"jina-embed",
-    r"nomic-embed", r"mxbai-embed", r"instructor",
+    r"nomic-embed", r"mxbai-embed", r"instructor", r"reranker", r"rerank",
 ]
 IMAGE_PATTERNS = [
-    r"stable-diffusion", r"sd-", r"flux", r"dall-", r"xl-", r"realvis",
-    r"photon-", r"animagine", r"meina", r"anything-", r"sdxl",
+    r"stable-diffusion", r"stable.?diffusion", r"\bsd[-_]?[0-9x]", r"sdxl", r"sd3",
+    r"flux", r"dall-?e", r"realvis", r"photon-", r"animagine", r"meina",
+    r"anything-", r"juggernaut", r"dreamshaper", r"playground-?v", r"kandinsky",
+    r"pixart", r"midjourney", r"\bimagen\b",
 ]
 AUDIO_PATTERNS = [
-    r"whisper", r"tts", r"bark", r"piper", r"coqui", r"xtts",
-    r"speech", r"voice",
+    r"whisper", r"\btts\b", r"bark", r"piper", r"coqui", r"xtts", r"kokoro",
+    r"speecht5", r"vits", r"melo", r"styletts", r"parler", r"musicgen",
+    r"audiogen", r"speech", r"voice", r"\basr\b",
 ]
 VIDEO_PATTERNS = [
-    r"video", r"svd", r"animatediff", r"zeroscope",
+    r"\bvideo\b", r"\bsvd\b", r"animatediff", r"zeroscope", r"cogvideo",
+    r"mochi", r"hunyuan-?video", r"ltx-?video", r"wan2",
 ]
 
 
