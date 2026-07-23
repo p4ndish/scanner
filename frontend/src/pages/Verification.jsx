@@ -228,7 +228,7 @@ export default function Verification() {
   }
 
   async function reverifyFiltered() {
-    const ok = await toastConfirm('Re-verify matches matching current filters (canary/math/consistency)?')
+    const ok = await toastConfirm(`Re-verify the ${pagination.total.toLocaleString()} hosts matching your current filters?`)
     if (!ok) return
     try {
       const res = await api.post('/matches/reverify-filtered', {
@@ -389,7 +389,10 @@ export default function Verification() {
         <div>
           <h1 className="text-2xl font-bold">Verification</h1>
           <p className="text-slate-400 text-sm mt-1">
-            Honeypot detection via 3-check LLM probing
+            <span className="font-medium text-slate-300">{pagination.total.toLocaleString()}</span> hosts match the current filters
+            {pagination.total > 0 && (
+              <span className="text-slate-500"> · showing {startItem.toLocaleString()}–{endItem.toLocaleString()}</span>
+            )}
           </p>
         </div>
       </div>

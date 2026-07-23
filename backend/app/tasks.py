@@ -606,28 +606,33 @@ def _run_verification(self, user_id: int, filters: dict, using_proxy: bool, max_
     # progress instead of a single global counter. scope = scan_<id> or "all".
     scope = f"scan_{filters['scan_id']}" if filters and filters.get("scan_id") else "all"
     pkey = f"verify:{user_id}:{scope}:progress"
+    # When an explicit ID list is given (re-verify of a specific/filtered set),
+    # we verify EXACTLY those IDs regardless of current status — no re-filtering
+    # (the endpoint already reset them to pending and their old status/details
+    # are gone). IDs are chunked in Python to avoid a giant SQL IN clause.
+    target_ids = list(filters.get("match_ids") or []) if filters else []
+
     try:
         # ── Phase 1: count total ──
-        q = db.query(Match.id).join(ScanJob).filter(
-            ScanJob.user_id == user_id,
-            Match.verified_status.in_(["pending", "unreachable"]),
-        )
-
-        if filters:
-            if filters.get("provider"):
-                q = q.filter(Match.provider.in_(_split_list(filters["provider"])))
-            if filters.get("service"):
-                q = q.filter(Match.service.in_(_split_list(filters["service"])))
-            if filters.get("scan_id"):
-                q = q.filter(Match.scan_job_id == filters["scan_id"])
-            if filters.get("verified_status"):
-                q = q.filter(Match.verified_status.in_(_split_list(filters["verified_status"])))
-            if filters.get("match_ids"):
-                q = q.filter(Match.id.in_(filters["match_ids"]))
-            elif filters.get("all_unreachable"):
-                q = q.filter(Match.verified_status == "unreachable")
-
-        total = q.count()
+        if target_ids:
+            total = len(target_ids)
+        else:
+            q = db.query(Match.id).join(ScanJob).filter(
+                ScanJob.user_id == user_id,
+                Match.verified_status.in_(["pending", "unreachable"]),
+            )
+            if filters:
+                if filters.get("provider"):
+                    q = q.filter(Match.provider.in_(_split_list(filters["provider"])))
+                if filters.get("service"):
+                    q = q.filter(Match.service.in_(_split_list(filters["service"])))
+                if filters.get("scan_id"):
+                    q = q.filter(Match.scan_job_id == filters["scan_id"])
+                if filters.get("verified_status"):
+                    q = q.filter(Match.verified_status.in_(_split_list(filters["verified_status"])))
+                if filters.get("all_unreachable"):
+                    q = q.filter(Match.verified_status == "unreachable")
+            total = q.count()
 
         if total == 0:
             r.setex(
@@ -662,41 +667,48 @@ def _run_verification(self, user_id: int, filters: dict, using_proxy: bool, max_
                 }),
             )
 
-        # ── Phase 2: stream through DB in chunks ──
-        offset = 0
+        # ── Phase 2: stream through in chunks ──
+        offset = 0  # only used to walk the explicit ID list
         cancelled = False
-        while offset < total:
+        while True:
             # Check for cancellation between chunks (POST /matches/verify/cancel)
             if r.get(f"verify:{user_id}:cancel"):
                 cancelled = True
                 break
 
-            # Fetch one chunk
-            chunk_q = db.query(
-                Match.id, Match.ip, Match.port, Match.scheme, Match.service
-            ).join(ScanJob).filter(
-                ScanJob.user_id == user_id,
-                Match.verified_status.in_(["pending", "unreachable"]),
-            )
+            if target_ids:
+                # Explicit ID set: slice the ID list directly (small IN per chunk),
+                # verify those exact rows regardless of current status.
+                id_slice = target_ids[offset:offset + CHUNK_SIZE]
+                if not id_slice:
+                    break
+                rows = db.query(
+                    Match.id, Match.ip, Match.port, Match.scheme, Match.service
+                ).filter(Match.id.in_(id_slice)).all()
+                offset += CHUNK_SIZE
+            else:
+                # Filter/status-based path: verified rows leave the pending set as
+                # we go, so we always take the *next* batch of pending/unreachable
+                # (no OFFSET — offsetting a shrinking set skips rows).
+                chunk_q = db.query(
+                    Match.id, Match.ip, Match.port, Match.scheme, Match.service
+                ).join(ScanJob).filter(
+                    ScanJob.user_id == user_id,
+                    Match.verified_status.in_(["pending", "unreachable"]),
+                )
+                if filters:
+                    if filters.get("provider"):
+                        chunk_q = chunk_q.filter(Match.provider.in_(_split_list(filters["provider"])))
+                    if filters.get("service"):
+                        chunk_q = chunk_q.filter(Match.service.in_(_split_list(filters["service"])))
+                    if filters.get("scan_id"):
+                        chunk_q = chunk_q.filter(Match.scan_job_id == filters["scan_id"])
+                    if filters.get("verified_status"):
+                        chunk_q = chunk_q.filter(Match.verified_status.in_(_split_list(filters["verified_status"])))
+                    if filters.get("all_unreachable"):
+                        chunk_q = chunk_q.filter(Match.verified_status == "unreachable")
+                rows = chunk_q.order_by(Match.id).limit(CHUNK_SIZE).all()
 
-            # Re-apply filters — MUST match the Phase-1 count query exactly
-            # (comma-list aware, using IN) or the chunk fetch returns 0 rows
-            # while the count is non-zero, and the verify exits doing nothing.
-            if filters:
-                if filters.get("provider"):
-                    chunk_q = chunk_q.filter(Match.provider.in_(_split_list(filters["provider"])))
-                if filters.get("service"):
-                    chunk_q = chunk_q.filter(Match.service.in_(_split_list(filters["service"])))
-                if filters.get("scan_id"):
-                    chunk_q = chunk_q.filter(Match.scan_job_id == filters["scan_id"])
-                if filters.get("verified_status"):
-                    chunk_q = chunk_q.filter(Match.verified_status.in_(_split_list(filters["verified_status"])))
-                if filters.get("match_ids"):
-                    chunk_q = chunk_q.filter(Match.id.in_(filters["match_ids"]))
-                elif filters.get("all_unreachable"):
-                    chunk_q = chunk_q.filter(Match.verified_status == "unreachable")
-
-            rows = chunk_q.order_by(Match.id).offset(offset).limit(CHUNK_SIZE).all()
             if not rows:
                 break
 
@@ -739,8 +751,6 @@ def _run_verification(self, user_id: int, filters: dict, using_proxy: bool, max_
                     })
                 db.commit()
                 update_progress()
-
-            offset += len(rows)
 
         # Clear the cancel flag if we consumed it
         if cancelled:

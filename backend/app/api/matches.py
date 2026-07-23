@@ -446,13 +446,16 @@ def reverify_matches(
     else:
         raise HTTPException(status_code=400, detail="Provide match_ids or all_unreachable=true")
 
-    subq = q.subquery()
-    total = db.query(Match.id).filter(Match.id.in_(subq)).count()
+    # Capture the exact IDs before resetting (we verify them by ID afterwards).
+    match_ids = [row[0] for row in q.all()]
+    total = len(match_ids)
     if total == 0:
         raise HTTPException(status_code=400, detail="No matches to re-verify")
 
     # Reset status to pending for these matches
-    stmt = update(Match).where(Match.id.in_(subq)).values(verified_status="pending")
+    stmt = update(Match).where(Match.id.in_(match_ids)).values(
+        verified_status="pending", verified_at=None, verification_details={},
+    )
     db.execute(stmt)
     db.commit()
 
@@ -473,7 +476,7 @@ def reverify_matches(
 
     task = verify_matches_task.delay(
         user_id=current_user.id,
-        filters={"match_ids": payload.match_ids, "all_unreachable": payload.all_unreachable, "scan_id": payload.scan_id},
+        filters={"match_ids": match_ids, "scan_id": payload.scan_id},
         use_proxy=payload.use_proxy,
     )
 
@@ -586,12 +589,14 @@ def reverify_filtered(
         expected = "true" if payload.consistency == "pass" else "false"
         q = q.filter(cast(Match.verification_details["consistency_pass"], String) == expected)
 
-    subq = q.subquery()
-    total = db.query(Match.id).filter(Match.id.in_(subq)).count()
+    # Capture the exact IDs that matched, BEFORE resetting them (their status /
+    # details are about to change, so we can't re-select them by the same filter).
+    match_ids = [row[0] for row in q.all()]
+    total = len(match_ids)
     if total == 0:
         raise HTTPException(status_code=400, detail="No matches matching these filters")
 
-    stmt = update(Match).where(Match.id.in_(subq)).values(
+    stmt = update(Match).where(Match.id.in_(match_ids)).values(
         verified_status="pending",
         verified_at=None,
         verification_details={},
@@ -609,17 +614,11 @@ def reverify_filtered(
         ex=7200,
     )
 
+    # Verify the exact reset set by ID (the old status/check filters no longer
+    # apply — those rows are now 'pending' with cleared details).
     task = verify_matches_task.delay(
         user_id=current_user.id,
-        filters={
-            "provider": payload.provider,
-            "service": payload.service,
-            "scan_id": payload.scan_id,
-            "verified_status": payload.verified_status,
-            "canary": payload.canary,
-            "math": payload.math,
-            "consistency": payload.consistency,
-        },
+        filters={"match_ids": match_ids, "scan_id": payload.scan_id},
         use_proxy=payload.use_proxy,
     )
 
