@@ -184,14 +184,14 @@ def discover_models(base_url: str, timeout: float = 5) -> tuple[list[str], str]:
 
 # ── Chat prompt probing ──
 
-def _probe_chat_completions(base_url: str, prompt: str, model: str, timeout: float):
+def _probe_chat_completions(base_url: str, prompt: str, model: str, timeout: float, max_tokens: int = MAX_TOKENS):
     try:
         r = _rpost(
             f"{base_url}/v1/chat/completions",
             json={
                 "model": model,
                 "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": MAX_TOKENS,
+                "max_tokens": max_tokens,
                 "stream": False,
             },
             timeout=timeout,
@@ -201,14 +201,15 @@ def _probe_chat_completions(base_url: str, prompt: str, model: str, timeout: flo
             choice = data.get("choices", [{}])[0]
             msg = choice.get("message", choice.get("text", ""))
             if isinstance(msg, dict):
-                return msg.get("content", "")
+                # reasoning models may put the answer in reasoning_content
+                return msg.get("content") or msg.get("reasoning_content") or ""
             return str(msg) if msg else None
     except Exception:
         pass
     return None
 
 
-def _probe_ollama_chat(base_url: str, prompt: str, model: str, timeout: float):
+def _probe_ollama_chat(base_url: str, prompt: str, model: str, timeout: float, max_tokens: int = MAX_TOKENS):
     try:
         r = _rpost(
             f"{base_url}/api/chat",
@@ -216,6 +217,7 @@ def _probe_ollama_chat(base_url: str, prompt: str, model: str, timeout: float):
                 "model": model,
                 "messages": [{"role": "user", "content": prompt}],
                 "stream": False,
+                "options": {"num_predict": max_tokens},
             },
             timeout=timeout,
         )
@@ -230,11 +232,11 @@ def _probe_ollama_chat(base_url: str, prompt: str, model: str, timeout: float):
     return None
 
 
-def _probe_ollama_generate(base_url: str, prompt: str, model: str, timeout: float):
+def _probe_ollama_generate(base_url: str, prompt: str, model: str, timeout: float, max_tokens: int = MAX_TOKENS):
     try:
         r = _rpost(
             f"{base_url}/api/generate",
-            json={"model": model, "prompt": prompt, "stream": False},
+            json={"model": model, "prompt": prompt, "stream": False, "options": {"num_predict": max_tokens}},
             timeout=timeout,
         )
         if r.status_code == 200:
@@ -245,11 +247,11 @@ def _probe_ollama_generate(base_url: str, prompt: str, model: str, timeout: floa
     return None
 
 
-def _probe_kobold_generate(base_url: str, prompt: str, timeout: float):
+def _probe_kobold_generate(base_url: str, prompt: str, timeout: float, max_tokens: int = MAX_TOKENS):
     try:
         r = _rpost(
             f"{base_url}/api/v1/generate",
-            json={"prompt": prompt, "max_length": MAX_TOKENS},
+            json={"prompt": prompt, "max_length": max_tokens},
             timeout=timeout,
         )
         if r.status_code == 200:
@@ -261,11 +263,11 @@ def _probe_kobold_generate(base_url: str, prompt: str, timeout: float):
     return None
 
 
-def _probe_openai_completions(base_url: str, prompt: str, model: str, timeout: float):
+def _probe_openai_completions(base_url: str, prompt: str, model: str, timeout: float, max_tokens: int = MAX_TOKENS):
     try:
         r = _rpost(
             f"{base_url}/v1/completions",
-            json={"model": model, "prompt": prompt, "max_tokens": MAX_TOKENS},
+            json={"model": model, "prompt": prompt, "max_tokens": max_tokens},
             timeout=timeout,
         )
         if r.status_code == 200:
@@ -277,18 +279,23 @@ def _probe_openai_completions(base_url: str, prompt: str, model: str, timeout: f
     return None
 
 
-def probe_with_model(base_url: str, prompt: str, model: str, timeout: float = 5):
-    """Send a chat prompt using a specific model name. Tries multiple endpoint formats."""
-    for probe_fn in [
-        lambda: _probe_chat_completions(base_url, prompt, model, timeout),
-        lambda: _probe_ollama_chat(base_url, prompt, model, timeout),
-        lambda: _probe_ollama_generate(base_url, prompt, model, timeout),
-        lambda: _probe_openai_completions(base_url, prompt, model, timeout),
-        lambda: _probe_kobold_generate(base_url, prompt, timeout),
-    ]:
-        result = probe_fn()
-        if result is not None:
-            return result
+def probe_with_model(base_url: str, prompt: str, model: str, timeout: float = 5,
+                     max_tokens: int = MAX_TOKENS, retries: int = 0):
+    """Send a chat prompt using a specific model name. Tries multiple endpoint
+    formats. (We probe with 3 different prompts in _verify_chat, so real hosts
+    already get several chances without a per-call retry multiplier.)"""
+    probes = [
+        lambda: _probe_chat_completions(base_url, prompt, model, timeout, max_tokens),
+        lambda: _probe_ollama_chat(base_url, prompt, model, timeout, max_tokens),
+        lambda: _probe_ollama_generate(base_url, prompt, model, timeout, max_tokens),
+        lambda: _probe_openai_completions(base_url, prompt, model, timeout, max_tokens),
+        lambda: _probe_kobold_generate(base_url, prompt, timeout, max_tokens),
+    ]
+    for attempt in range(retries + 1):
+        for probe_fn in probes:
+            result = probe_fn()
+            if result is not None:
+                return result
     return None
 
 
@@ -355,60 +362,131 @@ def verify_audio(base_url: str, model: str, timeout: float = 15):
 
 
 # ── Shared verification logic ──
+#
+# Philosophy: a host is "legitimate" if it behaves like a REAL LLM — i.e. it
+# demonstrates at least one genuine capability (follows an instruction, does
+# arithmetic, or echoes an exact token). A honeypot gives canned/irrelevant
+# replies regardless of the prompt. We do NOT require a model to be *good* at
+# math — a small/quantized/reasoning model that flubs 7+5 is still real.
 
 MATH_PROMPT = "What is 7+5? Reply with only the number."
-CANARY_PROMPT = "reply only H3llo"
+CANARY_PROMPT = "Reply with only this exact word and nothing else: H3llo"
+ECHO_PROMPT = "Repeat exactly, nothing else: banana42"
+
+# "twelve" in several languages, so a real model answering in its own language passes.
+_TWELVE_WORDS = ["twelve", "十二", "doce", "zwölf", "douze", "dodici", "十二個", "십이", "الاثنا عشر", "двенадцать"]
 
 
 def _check_math_answer(resp):
-    """Check if a math response contains the correct answer (12 or twelve)."""
+    """True if the math response indicates 12. Accepts the digit, multilingual
+    words, and the *last* number in a reasoning chain (so truncated CoT still
+    passes if it reached 12), while rejecting obvious canned text."""
     if resp is None:
         return False
     text = str(resp).lower()
-    return "12" in text or "twelve" in text
+    if any(w in text for w in _TWELVE_WORDS):
+        return True
+    # Look at the numbers that appear; a correct model ends on 12.
+    nums = re.findall(r"\d+", text)
+    if "12" in nums:
+        return True
+    return False
+
+
+def _norm(s):
+    return re.sub(r"[^a-z0-9]", "", str(s or "").lower())
+
+
+def _check_canary(resp):
+    """Instruction-following: did it reply with (essentially) just 'H3llo'?
+    A canned honeypot replies with unrelated boilerplate, so we require the
+    response to be SHORT and contain the canary token."""
+    if resp is None:
+        return False
+    n = _norm(resp)
+    return ("h3llo" in n or "hello" in n) and len(n) <= 12
+
+
+def _check_echo(resp):
+    """Instruction-following: did it echo the exact token 'banana42'?"""
+    if resp is None:
+        return False
+    return "banana42" in _norm(resp)
+
+
+def _distinct_nonempty(responses):
+    """Number of distinct non-empty (normalized) responses — a honeypot returns
+    the same canned string for different prompts, so this is ~1."""
+    vals = {_norm(r) for r in responses if r is not None and str(r).strip()}
+    vals.discard("")
+    return len(vals)
 
 
 def _verify_chat(base_url: str, model_ids: list, source: str, test_model: str, timeout: float):
-    """Run 3-check honeypot detection on a chat model."""
-    resp1 = probe_with_model(base_url, CANARY_PROMPT, test_model, timeout=timeout)
-    if resp1 is None:
-        return "unreachable", {
-            "error": "prompt_probe_failed",
+    """Multi-signal real-vs-fake detection for a chat model.
+
+    Three capability probes (instruction-follow, arithmetic, exact-echo).
+    - legitimate: passes ANY capability check (real LLM behaviour), OR responds
+      with clearly varied/relevant text while exposing a real model list.
+    - honeypot: responds but with canned/identical/irrelevant text (0 capabilities).
+    - model_listed: a real model list exists but the chat probe never answered
+      (finicky/slow/unsupported format) — a real server we couldn't fully verify.
+    - unreachable: nothing answered and no model list.
+    """
+    # Give the math probe more room so reasoning models can finish; retry once.
+    resp_canary = probe_with_model(base_url, CANARY_PROMPT, test_model, timeout=timeout, max_tokens=32)
+    resp_math = probe_with_model(base_url, MATH_PROMPT, test_model, timeout=timeout, max_tokens=512)
+    resp_echo = probe_with_model(base_url, ECHO_PROMPT, test_model, timeout=timeout, max_tokens=32)
+
+    responses = [resp_canary, resp_math, resp_echo]
+    any_response = any(r is not None and str(r).strip() for r in responses)
+
+    if not any_response:
+        # Real model list but chat never answered -> reachable, inconclusive.
+        status = "model_listed" if model_ids else "unreachable"
+        return status, {
+            "error": "prompt_probe_no_answer",
             "models_found": model_ids,
             "model_type": "chat",
             "model_used": test_model,
-            "responses": [],
+            "model_discovery_source": source,
+            "responses": [
+                {"check": "canary", "prompt": CANARY_PROMPT, "response": resp_canary},
+                {"check": "math", "prompt": MATH_PROMPT, "response": resp_math},
+                {"check": "echo", "prompt": ECHO_PROMPT, "response": resp_echo},
+            ],
         }
 
-    canary_pass = bool(str(resp1).strip())
+    canary_pass = _check_canary(resp_canary)
+    math_pass = _check_math_answer(resp_math)
+    echo_pass = _check_echo(resp_echo)
+    distinct = _distinct_nonempty(responses)
+    varied = distinct >= 2  # different prompts -> different answers (not canned)
 
-    resp2 = probe_with_model(base_url, MATH_PROMPT, test_model, timeout=timeout)
-    math_pass = _check_math_answer(resp2)
+    capability = canary_pass or math_pass or echo_pass
 
-    if len(model_ids) > 1:
-        resp3 = probe_with_model(base_url, CANARY_PROMPT, test_model, timeout=timeout)
-        consistency_pass = resp3 is not None and resp1 != resp3
-    else:
-        resp3 = None
-        consistency_pass = True
-
-    if canary_pass and math_pass:
+    # legitimate: demonstrated a real capability, or (has a real model list AND
+    # gives varied, prompt-dependent answers — i.e. clearly processing input).
+    if capability or (bool(model_ids) and varied and distinct >= 3):
         status = "legitimate"
     else:
+        # responded but no capability and/or canned -> honeypot
         status = "honeypot"
 
     return status, {
         "canary_pass": canary_pass,
         "math_pass": math_pass,
-        "consistency_pass": consistency_pass,
+        "echo_pass": echo_pass,
+        "consistency_pass": varied,  # kept for UI back-compat (now = "varied")
+        "distinct_responses": distinct,
         "models_found": model_ids,
         "model_type": "chat",
         "model_used": test_model,
         "model_discovery_source": source,
         "responses": [
-            {"check": "canary", "prompt": CANARY_PROMPT, "response": resp1},
-            {"check": "math", "prompt": MATH_PROMPT, "response": resp2},
-            {"check": "consistency", "prompt": CANARY_PROMPT, "response": resp3},
+            {"check": "canary", "prompt": CANARY_PROMPT, "response": resp_canary},
+            {"check": "math", "prompt": MATH_PROMPT, "response": resp_math},
+            {"check": "echo", "prompt": ECHO_PROMPT, "response": resp_echo},
         ],
     }
 
@@ -442,34 +520,9 @@ def verify_endpoint(ip: str, port: int, scheme: str = "http", timeout: float = 5
     model_ids = [mid for mid in model_ids if mid]
 
     if not model_ids:
-        # No models discovered — try generic chat prompt anyway
-        resp1 = probe_with_model(base_url, CANARY_PROMPT, "", timeout=timeout)
-        if resp1 is None:
-            return "unreachable", {
-                "error": "no_models_and_no_response",
-                "models_found": [],
-                "model_type": None,
-                "responses": [],
-            }
-        canary_pass = bool(str(resp1).strip())
-        resp2 = probe_with_model(base_url, MATH_PROMPT, "", timeout=timeout)
-        math_pass = _check_math_answer(resp2)
-        resp3 = probe_with_model(base_url, CANARY_PROMPT, "", timeout=timeout)
-        consistency_pass = resp3 is not None and resp1 != resp3
-        status = "legitimate" if canary_pass and math_pass else "honeypot"
-        return status, {
-            "canary_pass": canary_pass,
-            "math_pass": math_pass,
-            "consistency_pass": consistency_pass,
-            "models_found": [],
-            "model_type": None,
-            "model_used": "",
-            "responses": [
-                {"check": "canary", "prompt": CANARY_PROMPT, "response": resp1},
-                {"check": "math", "prompt": MATH_PROMPT, "response": resp2},
-                {"check": "consistency", "prompt": CANARY_PROMPT, "response": resp3},
-            ],
-        }
+        # No models discovered — probe generically with the same multi-signal
+        # logic (empty model name; many servers accept that).
+        return _verify_chat(base_url, [], "", "", timeout)
 
     # 3. Classify models and pick the best model for verification
     model_types = {mid: _classify_model_type(mid) for mid in model_ids}

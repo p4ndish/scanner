@@ -27,6 +27,7 @@ import MultiSelect from '../components/MultiSelect'
 const STATUS_COLORS = {
   pending: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
   legitimate: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+  model_listed: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
   honeypot: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
   unreachable: 'bg-slate-700 text-slate-400 border-slate-600',
 }
@@ -34,6 +35,7 @@ const STATUS_COLORS = {
 const STATUS_ICONS = {
   pending: HelpCircle,
   legitimate: CheckCircle2,
+  model_listed: CheckCircle2,
   honeypot: XCircle,
   unreachable: WifiOff,
 }
@@ -590,6 +592,7 @@ export default function Verification() {
                   <option value="">Select status...</option>
                   <option value="pending">Pending</option>
                   <option value="legitimate">Legitimate</option>
+                  <option value="model_listed">Model listed</option>
                   <option value="honeypot">Honeypot</option>
                   <option value="unreachable">Unreachable</option>
                 </select>
@@ -664,6 +667,7 @@ export default function Verification() {
             options={[
               { value: 'pending', label: 'Pending' },
               { value: 'legitimate', label: 'Legitimate' },
+              { value: 'model_listed', label: 'Model listed' },
               { value: 'honeypot', label: 'Honeypot' },
               { value: 'unreachable', label: 'Unreachable' },
             ]}

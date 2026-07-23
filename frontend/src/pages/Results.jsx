@@ -666,6 +666,7 @@ export default function Results({ scanId }) {
                   <option value="">Select status...</option>
                   <option value="pending">Pending</option>
                   <option value="legitimate">Legitimate</option>
+                  <option value="model_listed">Model listed</option>
                   <option value="honeypot">Honeypot</option>
                   <option value="unreachable">Unreachable</option>
                 </select>
@@ -804,6 +805,7 @@ export default function Results({ scanId }) {
             options={[
               { value: 'pending', label: 'Pending' },
               { value: 'legitimate', label: 'Legitimate' },
+              { value: 'model_listed', label: 'Model listed' },
               { value: 'honeypot', label: 'Honeypot' },
               { value: 'unreachable', label: 'Unreachable' },
             ]}
@@ -957,6 +959,10 @@ export default function Results({ scanId }) {
                         {m.verified_status === 'legitimate' ? (
                           <span className="inline-flex items-center text-xs bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded">
                             Legitimate
+                          </span>
+                        ) : m.verified_status === 'model_listed' ? (
+                          <span className="inline-flex items-center text-xs bg-cyan-500/10 text-cyan-400 px-1.5 py-0.5 rounded" title="Real model list found, but the chat probe was inconclusive">
+                            Model listed
                           </span>
                         ) : m.verified_status === 'honeypot' ? (
                           <span className="inline-flex items-center text-xs bg-rose-500/10 text-rose-400 px-1.5 py-0.5 rounded">
