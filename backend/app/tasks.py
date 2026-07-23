@@ -679,16 +679,18 @@ def _run_verification(self, user_id: int, filters: dict, using_proxy: bool, max_
                 Match.verified_status.in_(["pending", "unreachable"]),
             )
 
-            # Re-apply filters
+            # Re-apply filters — MUST match the Phase-1 count query exactly
+            # (comma-list aware, using IN) or the chunk fetch returns 0 rows
+            # while the count is non-zero, and the verify exits doing nothing.
             if filters:
                 if filters.get("provider"):
-                    chunk_q = chunk_q.filter(Match.provider == filters["provider"])
+                    chunk_q = chunk_q.filter(Match.provider.in_(_split_list(filters["provider"])))
                 if filters.get("service"):
-                    chunk_q = chunk_q.filter(Match.service == filters["service"])
+                    chunk_q = chunk_q.filter(Match.service.in_(_split_list(filters["service"])))
                 if filters.get("scan_id"):
                     chunk_q = chunk_q.filter(Match.scan_job_id == filters["scan_id"])
                 if filters.get("verified_status"):
-                    chunk_q = chunk_q.filter(Match.verified_status == filters["verified_status"])
+                    chunk_q = chunk_q.filter(Match.verified_status.in_(_split_list(filters["verified_status"])))
                 if filters.get("match_ids"):
                     chunk_q = chunk_q.filter(Match.id.in_(filters["match_ids"]))
                 elif filters.get("all_unreachable"):
