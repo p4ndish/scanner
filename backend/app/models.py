@@ -159,3 +159,8 @@ def _migrate_locked(conn):
         if "retry" not in cols:
             conn.execute(text("ALTER TABLE scan_jobs ADD COLUMN IF NOT EXISTS retry INTEGER DEFAULT 1"))
 
+    # Indexes for fast filtering (service was previously unindexed -> full scans).
+    if "matches" in insp.get_table_names():
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_matches_service ON matches (service)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_matches_verified_service ON matches (verified_status, service)"))
+

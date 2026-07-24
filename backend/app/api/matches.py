@@ -430,57 +430,37 @@ def reverify_matches(
     import json
     import os
 
-    from sqlalchemy import update
-
-    # Build subquery of match IDs to re-verify
-    q = db.query(Match.id).join(ScanJob).filter(
-        ScanJob.user_id == current_user.id,
-    )
-
-    if payload.scan_id:
-        q = q.filter(Match.scan_job_id == payload.scan_id)
-    if payload.all_unreachable:
-        q = q.filter(Match.verified_status == "unreachable")
-    elif payload.match_ids:
-        q = q.filter(Match.id.in_(payload.match_ids))
-    else:
+    if not payload.all_unreachable and not payload.match_ids:
         raise HTTPException(status_code=400, detail="Provide match_ids or all_unreachable=true")
 
-    # Capture the exact IDs before resetting (we verify them by ID afterwards).
-    match_ids = [row[0] for row in q.all()]
-    total = len(match_ids)
-    if total == 0:
-        raise HTTPException(status_code=400, detail="No matches to re-verify")
-
-    # Reset status to pending for these matches
-    stmt = update(Match).where(Match.id.in_(match_ids)).values(
-        verified_status="pending", verified_at=None, verification_details={},
-    )
-    db.execute(stmt)
-    db.commit()
-
-    # Set progress in Redis
     r = redis.from_url(os.getenv("REDIS_URL", "redis://redis:6379/0"))
     r.set(
         _vkey(current_user.id, payload.scan_id),
         json.dumps({
-            "total": total,
-            "done": 0,
-            "legitimate": 0,
-            "honeypot": 0,
-            "unreachable": 0,
-            "state": "queued",
+            "total": 0, "done": 0, "legitimate": 0,
+            "honeypot": 0, "unreachable": 0, "state": "queued",
         }),
         ex=3600,
     )
 
+    if payload.match_ids:
+        # Explicit (usually small) selection from the UI — pass the IDs; the
+        # worker resets + verifies them.
+        task_filters = {"reverify_ids": list(payload.match_ids), "scan_id": payload.scan_id}
+    else:
+        # all_unreachable: let the worker select + reset (could be huge).
+        task_filters = {
+            "reverify_filter": {"verified_status": "unreachable", "scan_id": payload.scan_id},
+            "scan_id": payload.scan_id,
+        }
+
     task = verify_matches_task.delay(
         user_id=current_user.id,
-        filters={"match_ids": match_ids, "scan_id": payload.scan_id},
+        filters=task_filters,
         use_proxy=payload.use_proxy,
     )
 
-    return {"queued": True, "total": total, "task_id": task.id}
+    return {"queued": True, "task_id": task.id}
 
 
 class ReverifyAllPayload(BaseModel):
@@ -569,60 +549,36 @@ def reverify_filtered(
     import json
     import os
 
-    q = db.query(Match.id).join(ScanJob).filter(ScanJob.user_id == current_user.id)
-
-    if payload.scan_id:
-        q = q.filter(Match.scan_job_id == payload.scan_id)
-    if payload.provider:
-        q = q.filter(Match.provider.in_(_split_list(payload.provider)))
-    if payload.service:
-        q = q.filter(Match.service.in_(_split_list(payload.service)))
-    if payload.verified_status:
-        q = q.filter(Match.verified_status.in_(_split_list(payload.verified_status)))
-    if payload.canary and payload.canary in ("pass", "fail"):
-        expected = "true" if payload.canary == "pass" else "false"
-        q = q.filter(cast(Match.verification_details["canary_pass"], String) == expected)
-    if payload.math and payload.math in ("pass", "fail"):
-        expected = "true" if payload.math == "pass" else "false"
-        q = q.filter(cast(Match.verification_details["math_pass"], String) == expected)
-    if payload.consistency and payload.consistency in ("pass", "fail"):
-        expected = "true" if payload.consistency == "pass" else "false"
-        q = q.filter(cast(Match.verification_details["consistency_pass"], String) == expected)
-
-    # Capture the exact IDs that matched, BEFORE resetting them (their status /
-    # details are about to change, so we can't re-select them by the same filter).
-    match_ids = [row[0] for row in q.all()]
-    total = len(match_ids)
-    if total == 0:
-        raise HTTPException(status_code=400, detail="No matches matching these filters")
-
-    stmt = update(Match).where(Match.id.in_(match_ids)).values(
-        verified_status="pending",
-        verified_at=None,
-        verification_details={},
-    )
-    db.execute(stmt)
-    db.commit()
+    # Return IMMEDIATELY: the heavy work (selecting matched IDs, resetting them,
+    # and verifying) is done in the Celery worker so the HTTP request doesn't
+    # block for minutes on large filters / cold caches.
+    reverify_filter = {
+        "provider": payload.provider,
+        "service": payload.service,
+        "verified_status": payload.verified_status,
+        "canary": payload.canary,
+        "math": payload.math,
+        "consistency": payload.consistency,
+        "scan_id": payload.scan_id,
+    }
 
     r = redis.from_url(os.getenv("REDIS_URL", "redis://redis:6379/0"))
     r.set(
         _vkey(current_user.id, getattr(payload, "scan_id", None)),
         json.dumps({
-            "total": total, "done": 0, "legitimate": 0,
-            "honeypot": 0, "unreachable": 0, "state": "queued",
+            "total": 0, "done": 0, "legitimate": 0, "honeypot": 0,
+            "unreachable": 0, "state": "queued",
         }),
         ex=7200,
     )
 
-    # Verify the exact reset set by ID (the old status/check filters no longer
-    # apply — those rows are now 'pending' with cleared details).
     task = verify_matches_task.delay(
         user_id=current_user.id,
-        filters={"match_ids": match_ids, "scan_id": payload.scan_id},
+        filters={"reverify_filter": reverify_filter, "scan_id": payload.scan_id},
         use_proxy=payload.use_proxy,
     )
 
-    return {"queued": True, "total": total, "task_id": task.id}
+    return {"queued": True, "task_id": task.id}
 
 
 @router.get("/export")

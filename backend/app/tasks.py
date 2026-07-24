@@ -607,10 +607,40 @@ def _run_verification(self, user_id: int, filters: dict, using_proxy: bool, max_
     scope = f"scan_{filters['scan_id']}" if filters and filters.get("scan_id") else "all"
     pkey = f"verify:{user_id}:{scope}:progress"
     # When an explicit ID list is given (re-verify of a specific/filtered set),
-    # we verify EXACTLY those IDs regardless of current status — no re-filtering
-    # (the endpoint already reset them to pending and their old status/details
-    # are gone). IDs are chunked in Python to avoid a giant SQL IN clause.
+    # we verify EXACTLY those IDs regardless of current status — no re-filtering.
     target_ids = list(filters.get("match_ids") or []) if filters else []
+
+    # Re-verify done fully in the worker (so the HTTP request returns instantly):
+    #   reverify_ids     -> reset these exact IDs to pending, then verify them
+    #   reverify_filter  -> select by criteria, capture IDs, reset, then verify
+    if filters and (filters.get("reverify_ids") or filters.get("reverify_filter")):
+        from sqlalchemy import update, cast, String
+        if filters.get("reverify_ids"):
+            sel_ids = list(filters["reverify_ids"])
+        else:
+            f = filters["reverify_filter"] or {}
+            sq = db.query(Match.id).join(ScanJob).filter(ScanJob.user_id == user_id)
+            if f.get("scan_id"):
+                sq = sq.filter(Match.scan_job_id == f["scan_id"])
+            if f.get("provider"):
+                sq = sq.filter(Match.provider.in_(_split_list(f["provider"])))
+            if f.get("service"):
+                sq = sq.filter(Match.service.in_(_split_list(f["service"])))
+            if f.get("verified_status"):
+                sq = sq.filter(Match.verified_status.in_(_split_list(f["verified_status"])))
+            for key, col in (("canary", "canary_pass"), ("math", "math_pass"), ("consistency", "consistency_pass")):
+                v = f.get(key)
+                if v in ("pass", "fail"):
+                    expected = "true" if v == "pass" else "false"
+                    sq = sq.filter(cast(Match.verification_details[col], String) == expected)
+            sel_ids = [row[0] for row in sq.all()]
+        # reset the selected set to pending (batched to avoid one giant IN)
+        for i in range(0, len(sel_ids), 5000):
+            batch = sel_ids[i:i + 5000]
+            db.execute(update(Match).where(Match.id.in_(batch)).values(
+                verified_status="pending", verified_at=None, verification_details={}))
+            db.commit()
+        target_ids = sel_ids
 
     try:
         # ── Phase 1: count total ──
@@ -634,21 +664,30 @@ def _run_verification(self, user_id: int, filters: dict, using_proxy: bool, max_
                     q = q.filter(Match.verified_status == "unreachable")
             total = q.count()
 
+        import time as _time
+
         if total == 0:
             r.setex(
                 pkey,
                 3600,
-                json.dumps({"total": 0, "done": 0, "state": "completed"}),
+                json.dumps({"total": 0, "done": 0, "state": "completed",
+                            "legitimate": 0, "honeypot": 0, "unreachable": 0,
+                            "finished_at": _time.time(), "updated_at": _time.time()}),
             )
             return
+
+        started_ts = _time.time()
 
         r.setex(
             pkey,
             3600,
-            json.dumps({"total": total, "done": 0, "state": "running", "using_proxy": using_proxy}),
+            json.dumps({"total": total, "done": 0, "state": "running",
+                        "using_proxy": using_proxy,
+                        "started_at": started_ts, "updated_at": started_ts}),
         )
 
-        counts = {"legitimate": 0, "honeypot": 0, "unreachable": 0}
+        from collections import defaultdict
+        counts = defaultdict(int, {"legitimate": 0, "honeypot": 0, "unreachable": 0, "model_listed": 0})
         done = 0
         CHUNK_SIZE = 500  # DB rows per chunk
         DB_BATCH = 25     # flush progress every N verified (lower = more responsive UI, esp. slow proxy verifies)
@@ -663,7 +702,11 @@ def _run_verification(self, user_id: int, filters: dict, using_proxy: bool, max_
                     "legitimate": counts["legitimate"],
                     "honeypot": counts["honeypot"],
                     "unreachable": counts["unreachable"],
+                    "model_listed": counts["model_listed"],
                     "state": "running",
+                    "using_proxy": using_proxy,
+                    "started_at": started_ts,
+                    "updated_at": _time.time(),
                 }),
             )
 
@@ -766,12 +809,18 @@ def _run_verification(self, user_id: int, filters: dict, using_proxy: bool, max_
                 "legitimate": counts["legitimate"],
                 "honeypot": counts["honeypot"],
                 "unreachable": counts["unreachable"],
+                "model_listed": counts["model_listed"],
                 "state": "cancelled" if cancelled else "completed",
+                "using_proxy": using_proxy,
+                "started_at": started_ts,
+                "updated_at": _time.time(),
+                "finished_at": _time.time(),
             }),
         )
 
     except Exception as exc:
         import traceback
+        import time as _time2
         r.setex(
             pkey,
             3600,
@@ -780,6 +829,7 @@ def _run_verification(self, user_id: int, filters: dict, using_proxy: bool, max_
                 "done": done if 'done' in dir() else 0,
                 "state": "failed",
                 "error": str(exc),
+                "finished_at": _time2.time(),
             }),
         )
         raise

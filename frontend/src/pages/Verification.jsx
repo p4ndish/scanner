@@ -207,8 +207,9 @@ export default function Verification() {
 
   async function reverifyUnreachable() {
     try {
-      const res = await api.post('/matches/reverify', { all_unreachable: true, use_proxy: useProxy })
-      toast(`Re-verification queued for ${res.total.toLocaleString()} unreachable matches`)
+      await api.post('/matches/reverify', { all_unreachable: true, use_proxy: useProxy })
+      toast(`Re-verification of unreachable hosts queued`)
+      setProgress({ state: 'queued', total: 0, done: 0, using_proxy: useProxy })
       loadProgress()
     } catch (e) {
       toast('Failed to re-verify: ' + e.message, 'error')
@@ -240,7 +241,8 @@ export default function Verification() {
         consistency: filters.consistency || undefined,
         use_proxy: useProxy,
       })
-      toast(`Re-verify filtered queued for ${res.total.toLocaleString()} matches`)
+      toast(`Re-verify filtered queued for ~${pagination.total.toLocaleString()} matches`)
+      setProgress({ state: 'queued', total: 0, done: 0, using_proxy: useProxy })
       loadProgress()
     } catch (e) {
       toast('Failed to re-verify filtered: ' + e.message, 'error')
@@ -374,10 +376,30 @@ export default function Verification() {
     }
   }
 
-  const isRunning = progress && progress.state === 'running'
+  const isRunning = progress && (progress.state === 'running' || progress.state === 'queued')
   const progressPct = progress && progress.total > 0
     ? Math.round((progress.done / progress.total) * 100)
     : 0
+
+  // Show a status card for the current/last run (queued/running/completed/cancelled/failed).
+  const showRunCard = progress && ['queued', 'running', 'completed', 'cancelled', 'failed'].includes(progress.state)
+  const RUN_META = {
+    queued:    { label: 'Queued…',                 bar: 'bg-amber-500',   text: 'text-amber-400' },
+    running:   { label: 'Verifying…',              bar: 'bg-emerald-500', text: 'text-emerald-400' },
+    completed: { label: 'Last run: completed',     bar: 'bg-emerald-500', text: 'text-emerald-400' },
+    cancelled: { label: 'Last run: cancelled',     bar: 'bg-rose-500',    text: 'text-rose-400' },
+    failed:    { label: 'Last run: failed',        bar: 'bg-rose-600',    text: 'text-rose-400' },
+  }
+  const runMeta = progress ? (RUN_META[progress.state] || RUN_META.completed) : RUN_META.completed
+  const fmtTime = (ts) => ts ? new Date(ts * 1000).toLocaleTimeString() : '—'
+  const fmtDur = (a, b) => {
+    if (!a || !b) return null
+    const s = Math.max(0, Math.round(b - a))
+    if (s < 60) return `${s}s`
+    const m = Math.floor(s / 60); const r = s % 60
+    return r ? `${m}m ${r}s` : `${m}m`
+  }
+  const runDuration = progress && fmtDur(progress.started_at, progress.finished_at || progress.updated_at)
 
   const startItem = (pagination.page - 1) * pagination.per_page + 1
   const endItem = Math.min(pagination.page * pagination.per_page, pagination.total)
@@ -429,20 +451,23 @@ export default function Verification() {
         </div>
       </div>
 
-      {/* Progress Bar */}
-      {progress && (isRunning || progress.state === 'cancelled') && (
+      {/* Verification run status (current or last) */}
+      {showRunCard && (
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-300 flex items-center gap-2">
-              {progress.state === 'cancelled' ? 'Verification cancelled' : 'Verifying...'}
+            <span className={`text-sm font-medium flex items-center gap-2 ${runMeta.text}`}>
+              {(isRunning) && <span className="inline-block w-2 h-2 rounded-full bg-current animate-pulse" />}
+              {runMeta.label}
               {progress.using_proxy && (
                 <span className="text-[10px] bg-cyan-500/10 text-cyan-400 px-1.5 py-0.5 rounded uppercase">via proxy</span>
               )}
             </span>
             <div className="flex items-center gap-3">
-              <span className="text-sm text-slate-400">
-                {progress.done.toLocaleString()} / {progress.total.toLocaleString()} ({progressPct}%)
-              </span>
+              {progress.state !== 'queued' && (
+                <span className="text-sm text-slate-400">
+                  {(progress.done || 0).toLocaleString()} / {(progress.total || 0).toLocaleString()} ({progressPct}%)
+                </span>
+              )}
               {isRunning && (
                 <button
                   onClick={stopVerification}
@@ -454,16 +479,26 @@ export default function Verification() {
               )}
             </div>
           </div>
-          <div className="w-full bg-slate-800 rounded-full h-2">
-            <div
-              className={progress.state === 'cancelled' ? 'bg-rose-500 h-2 rounded-full transition-all duration-500' : 'bg-emerald-500 h-2 rounded-full transition-all duration-500'}
-              style={{ width: `${progressPct}%` }}
-            />
-          </div>
-          <div className="flex gap-4 mt-2 text-xs text-slate-500">
+          {progress.state === 'queued' ? (
+            <p className="text-xs text-slate-500">Selecting &amp; resetting matched hosts in the background… the bar appears once counting finishes.</p>
+          ) : (
+            <div className="w-full bg-slate-800 rounded-full h-2">
+              <div
+                className={`${runMeta.bar} h-2 rounded-full transition-all duration-500`}
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+          )}
+          <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-slate-500">
             <span className="text-emerald-400">Legitimate: {progress.legitimate || 0}</span>
             <span className="text-rose-400">Honeypot: {progress.honeypot || 0}</span>
+            {progress.model_listed ? <span className="text-cyan-400">Model listed: {progress.model_listed}</span> : null}
             <span className="text-slate-400">Unreachable: {progress.unreachable || 0}</span>
+            {progress.started_at && <span>Started: {fmtTime(progress.started_at)}</span>}
+            {runDuration && <span>{progress.finished_at ? 'Took' : 'Elapsed'}: {runDuration}</span>}
+            {progress.state === 'failed' && progress.error && (
+              <span className="text-rose-400 truncate max-w-[40ch]" title={progress.error}>Error: {progress.error}</span>
+            )}
           </div>
         </div>
       )}
